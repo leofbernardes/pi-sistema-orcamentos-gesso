@@ -1,13 +1,16 @@
-class Servico {
+class Servico extends Entidade {
   constructor(dados = {}) {
-    this.id = dados.id || crypto.randomUUID();
-    this.codigo = dados.codigo || "";
-    this.nome = dados.nome || "";
+    super(dados);
     this.tipo = dados.tipo || "";
     this.unidade = dados.unidade || "";
     this.preco = dados.preco ?? 0;
     this.status = dados.status || "Ativo";
     this.descricao = dados.descricao || "";
+  }
+
+  obterIdentificacao() {
+    // Mantém o formato atual; a unidade continua no campo próprio da interface.
+    return `${String(this.codigo).padStart(3, "0")} - ${this.nome}`;
   }
 
   precoFormatado() {

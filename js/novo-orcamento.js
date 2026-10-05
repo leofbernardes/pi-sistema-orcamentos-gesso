@@ -1,5 +1,3 @@
-const STORAGE_KEY = "pizzol_orcamentos";
-const CODIGO_KEY = "pizzol_proximo_codigo_orcamento";
 const form = document.querySelector("#orcamento-form");
 const campos = ["clienteId", "validadeDias", "rua", "numero", "cidade", "cep",
   "adicionalValor", "adicionalDescricao", "descontoPercentual", "condicoesPagamento", "observacoes"];
@@ -12,42 +10,20 @@ let servicos = [];
 let rascunho = new Orcamento();
 let estadoInicial = "";
 let destinoCancelamento = "../index.html";
+const editandoId = new URLSearchParams(window.location.search || "").get("editar");
+let originalEdicao = null;
 
-function comArmazenamento(acao) {
-  return navigator.locks ? navigator.locks.request(STORAGE_KEY, acao) : Promise.resolve().then(acao);
-}
-
-function formatarPreco(valor) {
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function lerDecimal(texto) {
-  const valor = texto.trim().replace(/^R\$\s*/, "");
-  // Mesmo formato brasileiro utilizado no cadastro de Serviços e Preços.
-  if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/.test(valor)) return NaN;
-  return Number(valor.replace(/\./g, "").replace(",", "."));
-}
-
-function somenteNumeros(texto) { return texto.replace(/\D/g, ""); }
-function formatarCep(texto) { return somenteNumeros(texto).replace(/^(\d{5})(\d+)/, "$1-$2"); }
-function formatarData(data) { return data ? data.split("-").reverse().join("/") : "—"; }
-function formatarCodigo(codigo) { return String(codigo).padStart(3, "0"); }
-function formatarTelefone(texto) {
-  const numeros = somenteNumeros(texto);
-  const corte = numeros.length > 10 ? 7 : 6;
-  return numeros.length >= 10 ? `(${numeros.slice(0, 2)}) ${numeros.slice(2, corte)}-${numeros.slice(corte)}` : texto;
-}
-
-function enderecoCliente(cliente) {
-  return { rua: cliente.rua || "", numero: cliente.numero || "", cidade: cliente.cidade || "", cep: cliente.cep || "" };
-}
-
-function lerLista(chave) {
-  const dados = JSON.parse(localStorage.getItem(chave) || "[]");
-  if (!Array.isArray(dados) || dados.some((item) => !item || typeof item !== "object" || Array.isArray(item))) {
-    throw new Error("Formato de armazenamento inválido.");
+function clienteSelecionado() {
+  if (originalEdicao && form.elements.clienteId.value === originalEdicao.clienteId) {
+    return { id: originalEdicao.clienteId, ...originalEdicao.cliente, ...originalEdicao.cliente.endereco };
   }
-  return dados;
+  return clientes.find((item) => item.id === form.elements.clienteId.value);
+}
+
+function clientesDisponiveis() {
+  if (!originalEdicao) return clientes;
+  return [new Cliente({ id: originalEdicao.clienteId, ...originalEdicao.cliente, ...originalEdicao.cliente.endereco }),
+    ...clientes.filter((item) => item.id !== originalEdicao.clienteId)];
 }
 
 function carregarCatalogos() {
@@ -68,38 +44,8 @@ function carregarCatalogos() {
   if (novosServicos.some((item) => !Number.isFinite(item.preco) || item.preco <= 0 || item.preco > 999999.99)) {
     throw new Error("Preço inválido no cadastro.");
   }
-  clientes = novosClientes.filter((cliente) => cliente.status === "Ativo");
-  servicos = novosServicos.filter((servico) => servico.status === "Ativo");
-}
-
-function carregarOrcamentos() {
-  const orcamentos = lerLista(STORAGE_KEY);
-  const codigos = new Set();
-  const ids = new Set();
-  let proximo = 1;
-  orcamentos.forEach((orcamento) => {
-    const numero = /^ORC-\d+$/.test(orcamento.codigo) ? Number(orcamento.codigo.slice(4)) : 0;
-    if (!Number.isSafeInteger(numero) || numero < 1 || codigos.has(numero)
-      || typeof orcamento.id !== "string" || !orcamento.id || ids.has(orcamento.id)) {
-      throw new Error("Orçamento armazenado inválido.");
-    }
-    codigos.add(numero);
-    ids.add(orcamento.id);
-    proximo = Math.max(proximo, numero + 1);
-  });
-  const contador = localStorage.getItem(CODIGO_KEY);
-  if (contador !== null) {
-    if (!/^\d+$/.test(contador) || !Number.isSafeInteger(Number(contador)) || Number(contador) < 1) {
-      throw new Error("Sequência inválida.");
-    }
-    proximo = Math.max(proximo, Number(contador));
-  }
-  if (!Number.isSafeInteger(proximo + 1)) throw new Error("Limite de códigos atingido.");
-  return { orcamentos, proximo };
-}
-
-function normalizarBusca(texto) {
-  return texto.normalize("NFD").replace(/\p{M}/gu, "").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+  clientes = novosClientes.filter((cliente) => cliente.status === "Ativo").map((item) => new Cliente(item));
+  servicos = novosServicos.filter((servico) => servico.status === "Ativo").map((item) => new Servico(item));
 }
 
 // O texto da pesquisa é separado do id: digitar nunca confirma uma seleção.
@@ -129,7 +75,7 @@ function criarBusca(nome, campoId, obterRegistros, aoSelecionar, mensagemVazia) 
 
   function selecionar(registro) {
     identidade.value = registro.id;
-    input.value = `${formatarCodigo(registro.codigo)} - ${registro.nome}`;
+    input.value = registro.obterIdentificacao();
     limparErro(campoId);
     aoSelecionar();
     fechar();
@@ -138,11 +84,11 @@ function criarBusca(nome, campoId, obterRegistros, aoSelecionar, mensagemVazia) 
   function abrir() {
     const termo = identidade.value ? "" : normalizarBusca(input.value);
     resultados = obterRegistros().filter((registro) =>
-      normalizarBusca(`${formatarCodigo(registro.codigo)} - ${registro.nome}`).includes(termo));
+      normalizarBusca(registro.obterIdentificacao()).includes(termo));
     const opcoes = resultados.map((registro, index) => {
       const opcao = document.createElement("li");
       opcao.id = `opcao-${nome}-${index}`;
-      opcao.textContent = `${formatarCodigo(registro.codigo)} - ${registro.nome}`;
+      opcao.textContent = registro.obterIdentificacao();
       opcao.setAttribute("role", "option");
       opcao.setAttribute("aria-selected", String(registro.id === identidade.value));
       // Mantém o foco no combobox até o clique selecionar o resultado.
@@ -168,7 +114,7 @@ function criarBusca(nome, campoId, obterRegistros, aoSelecionar, mensagemVazia) 
     if (identidade.value && !selecionado) {
       identidade.value = "";
       input.value = "";
-    } else if (selecionado) input.value = `${formatarCodigo(selecionado.codigo)} - ${selecionado.nome}`;
+    } else if (selecionado) input.value = selecionado.obterIdentificacao();
     aoSelecionar();
     if (!lista.hidden) abrir();
   }
@@ -224,7 +170,7 @@ function atualizarServico() {
 }
 
 function atualizarCliente() {
-  const cliente = clientes.find((item) => item.id === form.elements.clienteId.value);
+  const cliente = clienteSelecionado();
   document.querySelector("#cliente-resumo").hidden = !cliente;
   document.querySelector("#copiar-aviso").hidden = true;
   if (!cliente) return;
@@ -236,7 +182,7 @@ function atualizarCliente() {
 }
 
 function copiarEndereco() {
-  const cliente = clientes.find((item) => item.id === form.elements.clienteId.value);
+  const cliente = clienteSelecionado();
   document.querySelector("#copiar-aviso").hidden = Boolean(cliente);
   if (!cliente) return;
   Object.entries(enderecoCliente(cliente)).forEach(([campo, valor]) => {
@@ -294,6 +240,20 @@ function renderizarItens() {
       formatarPreco(item.precoUnitario), formatarPreco(item.calcularSubtotal())].forEach((valor, index) => {
       const celula = document.createElement("td");
       celula.textContent = valor;
+      if (editandoId && index === 3) {
+        const quantidade = document.createElement("input");
+        quantidade.inputMode = "decimal";
+        quantidade.value = item.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+        quantidade.setAttribute("aria-label", `Quantidade de ${item.nomeServico}`);
+        quantidade.addEventListener("input", () => {
+          const numero = lerDecimal(quantidade.value);
+          item.quantidade = numero;
+          quantidade.setAttribute("aria-invalid", String(!quantidadeValida(numero)));
+          linha.children[5].textContent = quantidadeValida(numero) ? formatarPreco(item.calcularSubtotal()) : "—";
+          atualizarTotais();
+        });
+        celula.replaceChildren(quantidade);
+      }
       if (index === 0) celula.className = "client-name service-name";
       if (index >= 4) celula.className = "amount";
       linha.append(celula);
@@ -356,7 +316,7 @@ function atualizarContadores() {
 
 function validarDados(dados, itens = rascunho.itens) {
   const erros = {};
-  if (!clientes.some((cliente) => cliente.id === dados.clienteId)) erros.clienteId = "Selecione um cliente ativo.";
+  if (!clientesDisponiveis().some((cliente) => cliente.id === dados.clienteId)) erros.clienteId = "Selecione um cliente ativo.";
   if (!Number.isInteger(dados.validadeDias) || dados.validadeDias < 1 || dados.validadeDias > 365) erros.validadeDias = "Informe de 1 a 365 dias.";
   if (!dados.rua.trim()) erros.rua = "Informe a rua da obra.";
   if (!dados.cidade.trim()) erros.cidade = "Informe a cidade da obra.";
@@ -366,7 +326,8 @@ function validarDados(dados, itens = rascunho.itens) {
   if (!itens.length) erros.itens = "Adicione pelo menos um serviço ao orçamento.";
   else if (itens.some((item) => !quantidadeValida(item.quantidade) || !duasCasas(item.quantidade)
     || !Number.isFinite(item.precoUnitario) || item.precoUnitario <= 0 || item.precoUnitario > 999999.99
-    || !servicos.some((servico) => servico.id === item.servicoId))) {
+    || (!originalEdicao?.itens.some((antigo) => antigo.id === item.id)
+      && !servicos.some((servico) => servico.id === item.servicoId)))) {
     erros.itens = "Há itens inválidos ou serviços que não estão mais ativos. Remova esses itens e adicione serviços ativos com quantidade válida.";
   }
   if (!Number.isFinite(dados.adicionalValor) || dados.adicionalValor < 0 || dados.adicionalValor > 999999.99 || !duasCasas(dados.adicionalValor)) erros.adicionalValor = "Informe um adicional de R$ 0,00 a R$ 999.999,99.";
@@ -381,6 +342,7 @@ function salvarOrcamento(dados) {
   // Relê os cadastros antes de validar: exclusões/inativações em outra aba não passam.
   carregarCatalogos();
   if (mostrarErros(validarDados(dados))) return null;
+  if (editandoId) return salvarEdicao(dados);
   const { orcamentos, proximo } = carregarOrcamentos();
   const cliente = clientes.find((item) => item.id === dados.clienteId);
   const orcamento = new Orcamento({ ...dados, codigo: `ORC-${formatarCodigo(proximo)}`,
@@ -393,6 +355,61 @@ function salvarOrcamento(dados) {
   localStorage.setItem(CODIGO_KEY, String(proximo + 1));
   localStorage.setItem(STORAGE_KEY, serializado);
   return orcamento;
+}
+
+function salvarEdicao(dados) {
+  if (!originalEdicao) throw new Error("Não foi possível carregar o orçamento para edição.");
+  return alterarOrcamento(editandoId, (atual) => {
+    // Status e pagamentos podem mudar em outra aba; preservamos os valores mais recentes.
+    const proposta = (registro) => JSON.stringify({ ...registro, status: null, pagamentos: null });
+    if (proposta(atual) !== proposta(originalEdicao)) {
+      throw new Error("Este orçamento foi editado em outra aba. Recarregue a página antes de salvar.");
+    }
+    const cliente = clienteSelecionado();
+    const novo = new Orcamento({ ...dados, id: atual.id, codigo: atual.codigo,
+      dataCriacao: atual.dataCriacao, status: atual.status, pagamentos: atual.pagamentos,
+      clienteCodigo: cliente.codigo, clienteNome: cliente.nome, clienteTelefone: cliente.telefone,
+      clienteEndereco: enderecoCliente(cliente),
+      enderecoObra: { rua: dados.rua, numero: dados.numero, cidade: dados.cidade, cep: somenteNumeros(dados.cep) },
+      itens: rascunho.itens });
+    novo.validarTotalPago();
+    const salvo = { ...atual, ...novo.toJSON() };
+    if (dados.clienteId === atual.clienteId) salvo.cliente = atual.cliente;
+    salvo.pagamentos = atual.pagamentos || [];
+    salvo.itens = salvo.itens.map((item) => {
+      const antigo = atual.itens.find((anterior) => anterior.id === item.id);
+      return antigo ? { ...antigo, quantidade: item.quantidade, subtotal: item.subtotal } : item;
+    });
+    if (dados.validadeDias === atual.validadeDias) salvo.dataValidade = atual.dataValidade;
+    return salvo;
+  });
+}
+
+function carregarEdicao() {
+  try {
+    originalEdicao = carregarOrcamentos().orcamentos.find((item) => item.id === editandoId);
+    if (!originalEdicao) throw new Error("Orçamento não encontrado.");
+    rascunho = new Orcamento(originalEdicao);
+    const valores = { ...rascunho, ...rascunho.enderecoObra,
+      adicionalValor: formatarPreco(rascunho.adicionalValor),
+      descontoPercentual: rascunho.descontoPercentual.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) };
+    campos.forEach((campo) => { form.elements[campo].value = String(valores[campo] ?? ""); });
+    buscaCliente.atualizar();
+    atualizarValidade(); atualizarContadores(); renderizarItens();
+    document.title = `Editar ${rascunho.codigo} | Pizzol Decoração em Gesso`;
+    document.querySelector("#pagina-titulo").textContent = "Editar orçamento";
+    document.querySelector("#pagina-descricao").textContent = "Atualize os dados da proposta. Os pagamentos registrados serão preservados.";
+    document.querySelector("#codigo-orcamento").textContent = rascunho.codigo;
+    document.querySelector("#status-orcamento").textContent = rascunho.status;
+    document.querySelector("#status-orcamento").className = `status status-${normalizarBusca(rascunho.status).replace(/ /g, "-")}`;
+    document.querySelector("#salvar-orcamento").textContent = "Salvar alterações";
+    document.querySelector("#cancelar-titulo").textContent = "Descartar alterações?";
+    estadoInicial = estadoFormulario();
+  } catch (erro) {
+    storageErro.textContent = `${erro.message} Volte à listagem de orçamentos.`;
+    storageErro.hidden = false;
+    document.querySelector("#salvar-orcamento").disabled = true;
+  }
 }
 
 function estadoFormulario() {
@@ -443,7 +460,7 @@ function atualizarPagina() {
   atualizarCliente();
 }
 
-const buscaCliente = criarBusca("cliente", "clienteId", () => clientes, atualizarCliente, "Nenhum cliente encontrado.");
+const buscaCliente = criarBusca("cliente", "clienteId", clientesDisponiveis, atualizarCliente, "Nenhum cliente encontrado.");
 const buscaServico = criarBusca("servico", "servicoId", () => servicos.filter((servico) =>
   form.elements.tipo.value === "todos" || servico.tipo === form.elements.tipo.value), atualizarServico, "Nenhum serviço encontrado.");
 
@@ -459,13 +476,18 @@ form.addEventListener("submit", async (event) => {
   try {
     const salvo = await comArmazenamento(() => salvarOrcamento(dados));
     if (!salvo) return;
+    if (editandoId) {
+      estadoInicial = estadoFormulario();
+      window.location.href = "./orcamentos.html";
+      return;
+    }
     limparFormulario();
     const sucesso = document.querySelector("#sucesso");
     sucesso.textContent = `Orçamento ${salvo.codigo} salvo com sucesso.`;
     sucesso.hidden = false;
     sucesso.focus();
-  } catch {
-    salvarErro.textContent = "Não foi possível salvar. Verifique o armazenamento do navegador e os cadastros. As informações preenchidas foram mantidas.";
+  } catch (erro) {
+    salvarErro.textContent = editandoId ? erro.message : "Não foi possível salvar. Verifique o armazenamento do navegador e os cadastros. As informações preenchidas foram mantidas.";
     salvarErro.hidden = false;
   } finally {
     botao.disabled = false;
@@ -511,7 +533,7 @@ function solicitarSaida(destino) {
   modal.showModal();
   document.querySelector("#continuar-editando").focus();
 }
-document.querySelector("#cancelar").addEventListener("click", () => solicitarSaida("../index.html"));
+document.querySelector("#cancelar").addEventListener("click", () => solicitarSaida(editandoId ? "./orcamentos.html" : "../index.html"));
 document.querySelector("#continuar-editando").addEventListener("click", () => modal.close());
 document.querySelector("#descartar").addEventListener("click", () => { window.location.href = destinoCancelamento; });
 modal.addEventListener("cancel", (event) => event.preventDefault());
@@ -526,3 +548,4 @@ window.addEventListener("storage", (event) => {
 });
 atualizarPagina();
 limparFormulario();
+if (editandoId) carregarEdicao();

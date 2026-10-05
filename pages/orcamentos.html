@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#F7F8F4" />
+    <title>Orçamentos | Pizzol Decoração em Gesso</title>
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/clientes.css" />
+    <link rel="stylesheet" href="../css/orcamentos.css" />
+    <script src="../js/models/item-orcamento.js" defer></script>
+    <script src="../js/models/pagamento.js" defer></script>
+    <script src="../js/models/orcamento.js" defer></script>
+    <script src="../js/utils/orcamentos.js" defer></script>
+    <script src="../js/orcamentos.js" defer></script>
+  </head>
+  <body class="dashboard clientes-page orcamentos-page">
+    <header class="header">
+      <div class="header-content">
+        <a class="brand" href="../index.html" aria-label="Pizzol Decoração em Gesso — início">
+          <span class="brand-name">Pizzol<span class="brand-dot">.</span></span>
+          <span class="brand-description">Decoração em Gesso</span>
+        </a>
+        <nav class="navigation" aria-label="Menu principal">
+          <a href="../index.html">Dashboard</a><a href="./clientes.html">Clientes</a>
+          <a href="./orcamentos.html" aria-current="page">Orçamentos</a><a href="./servicos.html">Serviços e Preços</a>
+        </nav>
+        <a class="primary-button" href="./novo-orcamento.html"><span aria-hidden="true">+</span> Novo orçamento</a>
+      </div>
+    </header>
+    <main class="main-content">
+      <div class="page-heading"><h1>Orçamentos</h1><p>Consulte, edite e acompanhe os orçamentos cadastrados.</p></div>
+      <p id="storage-error" class="error-message storage-error" role="alert" hidden></p>
+      <p id="sucesso" class="success-message" role="status" hidden></p>
+      <section class="recent-section clients-section" aria-label="Orçamentos cadastrados">
+        <div class="section-heading clients-controls">
+          <div class="form-field search-control"><label for="busca">Buscar orçamento</label><input id="busca" type="search" placeholder="Buscar por código ou cliente..." /></div>
+          <div class="form-field"><label for="filtro-status">Status do orçamento</label><select id="filtro-status"><option value="todos">Todos</option><option>Pendente</option><option>Em andamento</option><option>Finalizado</option><option>Recusado</option></select></div>
+          <div class="form-field"><label for="filtro-financeiro">Situação financeira</label><select id="filtro-financeiro"><option value="todos">Todos</option><option>Em aberto</option><option>Parcialmente pago</option><option>Pago</option></select></div>
+        </div>
+        <div id="tabela-regiao" class="table-container" tabindex="0" role="region" aria-label="Lista de orçamentos; role horizontalmente em telas pequenas">
+          <table><thead><tr><th scope="col">Código</th><th scope="col">Cliente</th><th scope="col">Data</th><th scope="col">Total</th><th scope="col">Pago</th><th scope="col">Em aberto</th><th scope="col">Situação financeira</th><th scope="col">Status</th><th scope="col">Ações</th></tr></thead><tbody id="lista-orcamentos"></tbody></table>
+        </div>
+        <div id="vazio" class="empty-state" hidden><p id="vazio-titulo">Nenhum orçamento cadastrado.</p><p id="vazio-descricao">Os novos orçamentos aparecerão aqui.</p><a id="vazio-novo" class="primary-button" href="./novo-orcamento.html">+ Novo orçamento</a></div>
+        <p id="contador" class="table-note" aria-live="polite"></p>
+      </section>
+      <footer class="page-footer">Pizzol Decoração em Gesso <span aria-hidden="true">·</span> Sistema de Orçamentos</footer>
+    </main>
+    <dialog id="ver-modal" class="client-dialog details-dialog" aria-labelledby="ver-titulo">
+      <div class="dialog-heading"><h2 id="ver-titulo">Ver orçamento</h2><button class="close-button" type="button" data-fechar="ver-modal" aria-label="Fechar detalhes">×</button></div>
+      <div id="ver-conteudo"></div>
+      <div class="dialog-actions"><button class="details-button" type="button" data-fechar="ver-modal">Fechar</button></div>
+    </dialog>
+    <dialog id="pagamento-modal" class="client-dialog" aria-labelledby="pagamento-titulo">
+      <div class="dialog-heading"><h2 id="pagamento-titulo">Registrar pagamento</h2><button class="close-button" type="button" data-fechar="pagamento-modal" aria-label="Fechar pagamento">×</button></div>
+      <dl id="pagamento-resumo" class="client-details"></dl>
+      <form id="pagamento-form" novalidate>
+        <div class="client-form-grid">
+          <div class="form-field"><label for="pagamento-valor">Valor do pagamento *</label><input id="pagamento-valor" inputmode="decimal" placeholder="R$ 0,00" required aria-describedby="pagamento-erro" /></div>
+          <div class="form-field"><label for="pagamento-forma">Forma de pagamento *</label><select id="pagamento-forma" required aria-describedby="pagamento-erro"><option value="">Selecione</option><option>Pix</option><option>Dinheiro</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Cheque</option></select></div>
+          <div class="form-field"><label for="pagamento-data">Data do pagamento *</label><input id="pagamento-data" type="date" required aria-describedby="pagamento-erro" /></div>
+          <div class="form-field full-width"><label for="pagamento-observacao">Observação</label><textarea id="pagamento-observacao" rows="3" maxlength="200" placeholder="Entrada referente ao início da obra." aria-describedby="pagamento-erro"></textarea></div>
+        </div>
+        <p id="pagamento-erro" class="error-message" role="alert" tabindex="-1" hidden></p>
+        <div class="dialog-actions"><button class="details-button cancel-button" type="button" data-fechar="pagamento-modal">Cancelar</button><button id="registrar-pagamento" class="primary-button" type="submit">Registrar pagamento</button></div>
+      </form>
+    </dialog>
+    <dialog id="status-modal" class="client-dialog" aria-labelledby="status-titulo">
+      <div class="dialog-heading"><h2 id="status-titulo">Alterar status do orçamento</h2></div>
+      <p id="status-identificacao" class="dialog-note"></p>
+      <form id="status-form" novalidate>
+        <div class="form-field status-field"><label for="novo-status">Status</label><select id="novo-status"><option>Pendente</option><option>Em andamento</option><option>Finalizado</option><option>Recusado</option></select></div>
+        <p class="dialog-note">O status da obra é independente dos pagamentos recebidos.</p>
+        <p id="status-erro" class="error-message" role="alert" tabindex="-1" hidden></p>
+        <div class="dialog-actions"><button class="details-button cancel-button" type="button" data-fechar="status-modal">Cancelar</button><button id="salvar-status" class="primary-button" type="submit">Salvar status</button></div>
+      </form>
+    </dialog>
+    <dialog id="excluir-modal" class="client-dialog" aria-labelledby="excluir-titulo" aria-describedby="excluir-mensagem excluir-aviso">
+      <div class="dialog-heading"><h2 id="excluir-titulo">Excluir orçamento?</h2></div>
+      <p id="excluir-mensagem" class="delete-message"></p><p id="excluir-aviso" class="delete-message" hidden></p>
+      <p id="excluir-erro" class="error-message" role="alert" tabindex="-1" hidden></p>
+      <div class="dialog-actions"><button id="cancelar-exclusao" class="details-button cancel-button" type="button" data-fechar="excluir-modal">Cancelar</button><button id="confirmar-exclusao" class="details-button danger-button" type="button">Excluir</button></div>
+    </dialog>
+  </body>
+</html>

@@ -8,7 +8,7 @@ const vm = require("node:vm");
 const { randomUUID } = require("node:crypto");
 const raiz = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(raiz, "pages/novo-orcamento.html"), "utf8");
-const codigo = ["js/models/item-orcamento.js", "js/models/orcamento.js", "js/novo-orcamento.js"]
+const codigo = ["js/models/entidade.js", "js/models/cliente.js", "js/models/servico.js", "js/models/pagamento.js", "js/utils/orcamentos.js", "js/models/item-orcamento.js", "js/models/orcamento.js", "js/novo-orcamento.js"]
   .map((arquivo) => fs.readFileSync(path.join(raiz, arquivo), "utf8")).join("\n");
 
 function elemento() {
@@ -28,9 +28,10 @@ function elemento() {
   };
 }
 
-function ambiente(inicial = {}) {
+function ambiente(inicial = {}, editar = "") {
   const elementos = new Map([...html.matchAll(/id="([^"]+)"/g)].map((match) => [`#${match[1]}`, elemento()]));
   const obter = (seletor) => {
+    seletor = `#${seletor.replace(/^#/, "")}`;
     assert.ok(elementos.has(seletor), `Elemento existe no HTML: ${seletor}`);
     return elementos.get(seletor);
   };
@@ -53,7 +54,7 @@ function ambiente(inicial = {}) {
   const links = [...html.matchAll(/<a\b[^>]*href="([^"]+)"/g)].map(([, href]) => {
     const link = elemento(); link.attributes.href = href; return link;
   });
-  const janela = { listeners: {}, location: { href: "" }, addEventListener(evento, acao) { this.listeners[evento] = acao; } };
+  const janela = { listeners: {}, location: { href: "", search: editar ? `?editar=${encodeURIComponent(editar)}` : "" }, addEventListener(evento, acao) { this.listeners[evento] = acao; } };
   const documento = { querySelector: obter, querySelectorAll: () => links, createElement: elemento, listeners: {},
     addEventListener(evento, acao) { (this.listeners[evento] ||= []).push(acao); } };
   for (const nome of ["cliente", "servico"]) {
@@ -61,9 +62,10 @@ function ambiente(inicial = {}) {
   }
   const contexto = vm.createContext({
     document: documento,
-    window: janela, navigator: {}, localStorage: storage, crypto: { randomUUID },
+    window: janela, navigator: {}, localStorage: storage, crypto: { randomUUID }, URLSearchParams,
   });
   vm.runInContext(codigo, contexto);
+  if (editar) assert.equal(obter("#salvar-orcamento").disabled, false, obter("#storage-error").textContent);
   return { run: (texto) => vm.runInContext(texto, contexto), obter, dados, storage, janela, links, documento };
 }
 
@@ -110,6 +112,37 @@ test("inicia sem orçamento, não grava dados fictícios e todos os links/recurs
   assert.equal(app.obter("#validadeDias").value, "7");
   assert.equal(app.obter("#condicoesPagamento").value, "");
   assert.equal(app.obter("#observacoes").value, "");
+});
+
+test("autocomplete usa instâncias e despacha obterIdentificacao de cada classe sem gravar catálogos", () => {
+  const inicial = catalogos();
+  const app = ambiente(inicial);
+  assert.equal(app.run("clientes.every((item) => item instanceof Cliente && item instanceof Entidade)"), true);
+  assert.equal(app.run("servicos.every((item) => item instanceof Servico && item instanceof Entidade)"), true);
+  app.run(`
+    Cliente.prototype.obterIdentificacao = function () { return "Cliente polimórfico"; };
+    Servico.prototype.obterIdentificacao = function () { return "Serviço polimórfico"; };
+  `);
+  for (const [nome, esperado] of [["cliente", "Cliente polimórfico"], ["servico", "Serviço polimórfico"]]) {
+    const opcoes = pesquisar(app, nome, esperado);
+    assert.equal(opcoes[0].textContent, esperado);
+    opcoes[0].listeners.click();
+    assert.equal(app.obter(`busca-${nome}`).value, esperado);
+    app.run(nome === "cliente" ? "buscaCliente.atualizar()" : "buscaServico.atualizar()");
+    assert.equal(app.obter(`busca-${nome}`).value, esperado);
+  }
+  assert.deepEqual(Object.fromEntries(app.dados), inicial);
+});
+
+test("autocomplete mantém a apresentação de códigos antigos sem zeros e não altera os dados", () => {
+  const inicial = { pizzol_clientes: JSON.stringify([{ ...cliente, codigo: 5 }]),
+    pizzol_servicos: JSON.stringify([{ ...servicoA, codigo: "22" }]) };
+  const app = ambiente(inicial);
+  assert.equal(pesquisar(app, "cliente", "005")[0].textContent, "005 - Cliente de teste");
+  assert.equal(pesquisar(app, "servico", "022")[0].textContent, "022 - Forro de teste");
+  assert.equal(app.run("clientes[0].codigo"), 5);
+  assert.equal(app.run("servicos[0].codigo"), "22");
+  assert.deepEqual(Object.fromEntries(app.dados), inicial);
 });
 
 test("somente clientes e serviços ativos; filtro de tipo, unidade e preço somente leitura", () => {
@@ -581,4 +614,294 @@ test("duplo envio não duplica orçamento; gravação relê a lista mais recente
   app.storage.setItem("pizzol_proximo_codigo_orcamento", outraAba.dados.get("pizzol_proximo_codigo_orcamento"));
   preparar(app); await enviar(app);
   assert.deepEqual(registros(app).map((item) => item.codigo), ["ORC-001", "ORC-002", "ORC-003"]);
+});
+
+const htmlLista = fs.readFileSync(path.join(raiz, "pages/orcamentos.html"), "utf8");
+function gerenciamento(inicial = {}, search = "") {
+  const elementos = new Map([...htmlLista.matchAll(/id="([^"]+)"/g)].map(([, id]) => [id, elemento()]));
+  const obter = (id) => {
+    const resultado = elementos.get(id.replace(/^#/, ""));
+    assert.ok(resultado, `Elemento da listagem existe: ${id}`); return resultado;
+  };
+  for (const [tag, id] of htmlLista.matchAll(/<[^>]+\bid="([^"]+)"[^>]*>/g)) obter(id).hidden = /\bhidden(?:\s|>)/.test(tag);
+  obter("filtro-status").value = "todos"; obter("filtro-financeiro").value = "todos";
+  obter("pagamento-form").reset = () => ["valor", "forma", "data", "observacao"].forEach((campo) => { obter(`pagamento-${campo}`).value = ""; });
+  const dados = new Map(Object.entries(inicial));
+  const storage = { getItem: (key) => dados.get(key) ?? null, setItem: (key, valor) => dados.set(key, String(valor)) };
+  const janela = { location: { href: "", search }, listeners: {}, addEventListener(evento, acao) { this.listeners[evento] = acao; } };
+  const fechar = [...htmlLista.matchAll(/data-fechar="([^"]+)"/g)].map(([, id]) => {
+    const botao = elemento(); botao.attributes["data-fechar"] = id; return botao;
+  });
+  const contexto = vm.createContext({ document: { querySelector: obter, createElement: elemento, querySelectorAll: () => fechar },
+    window: janela, localStorage: storage, navigator: {}, crypto: { randomUUID }, URLSearchParams });
+  const fontes = ["js/models/item-orcamento.js", "js/models/pagamento.js", "js/models/orcamento.js", "js/utils/orcamentos.js", "js/orcamentos.js"];
+  vm.runInContext(fontes.map((file) => fs.readFileSync(path.join(raiz, file), "utf8")).join("\n"), contexto);
+  return { run: (texto) => vm.runInContext(texto, contexto), obter, dados, storage, janela };
+}
+
+async function orcamentoSalvo() {
+  const app = ambiente(catalogos()); preparar(app); await enviar(app);
+  return registros(app)[0];
+}
+const pagamento = (valor = 100, formaPagamento = "Pix") => ({ valor, formaPagamento, data: "2026-10-04", observacao: "Entrada" });
+const chamar = (app, nome, ...args) => app.run(`${nome}(${args.map((arg) => JSON.stringify(arg)).join(",")})`);
+const textoFilhos = (elemento) => [elemento.textContent, ...elemento.children.map(textoFilhos)].join(" ");
+
+test("legado sem pagamentos: leitura não grava, total pago zero, saldo integral e Em aberto", async () => {
+  const salvo = await orcamentoSalvo(); delete salvo.pagamentos;
+  const inicial = { pizzol_orcamentos: JSON.stringify([salvo]) };
+  const app = gerenciamento(inicial);
+  assert.deepEqual(Object.fromEntries(app.dados), inicial);
+  app.run(`globalThis.modelo = new Orcamento(${JSON.stringify(salvo)})`);
+  assert.equal(app.run("modelo.pagamentos.length"), 0);
+  assert.equal(app.run("modelo.calcularTotalPago()"), 0);
+  assert.equal(app.run("modelo.calcularSaldoAberto()"), salvo.totalFinal);
+  assert.equal(app.run("modelo.obterSituacaoFinanceira()"), "Em aberto");
+  for (const [, destino] of htmlLista.matchAll(/(?:src|href)="([^"]+)"/g)) assert.ok(fs.existsSync(path.resolve(raiz, "pages", destino)), destino);
+});
+
+for (const forma of ["Pix", "Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Cheque"]) {
+  test(`registra ${forma} e persiste histórico sem alterar snapshots`, async () => {
+    const salvo = await orcamentoSalvo();
+    const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo]) });
+    chamar(app, "registrarPagamento", salvo.id, pagamento(300, forma));
+    const atualizado = registros(app)[0];
+    assert.equal(atualizado.pagamentos[0].formaPagamento, forma);
+    assert.equal(atualizado.pagamentos[0].valor, 300);
+    assert.ok(atualizado.pagamentos[0].id);
+    assert.deepEqual({ ...atualizado, pagamentos: [] }, salvo);
+    const reaberto = gerenciamento(Object.fromEntries(app.dados));
+    assert.equal(reaberto.run("new Orcamento(orcamentos[0]).calcularTotalPago()"), 300);
+    assert.match(textoFilhos(reaberto.obter("lista-orcamentos")), /Parcialmente pago/);
+  });
+}
+
+test("múltiplos pagamentos, centavos, quitação e remoção recalculam o financeiro", async () => {
+  const salvo = await orcamentoSalvo();
+  const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo]) });
+  chamar(app, "registrarPagamento", salvo.id, pagamento(0.1));
+  chamar(app, "registrarPagamento", salvo.id, pagamento(0.2, "Dinheiro"));
+  app.run("globalThis.modelo = new Orcamento(obterOrcamento(orcamentos[0].id))");
+  assert.equal(app.run("modelo.calcularTotalPago()"), 0.3);
+  assert.equal(app.run("modelo.calcularSaldoAberto()"), salvo.totalFinal - 0.3);
+  assert.equal(app.run("modelo.obterSituacaoFinanceira()"), "Parcialmente pago");
+  chamar(app, "registrarPagamento", salvo.id, pagamento(salvo.totalFinal - 0.3));
+  app.run("modelo = new Orcamento(obterOrcamento(orcamentos[0].id))");
+  assert.equal(app.run("modelo.obterSituacaoFinanceira()"), "Pago");
+  assert.equal(app.run("modelo.calcularSaldoAberto()"), 0);
+  const pagamentos = registros(app)[0].pagamentos;
+  chamar(app, "removerPagamento", salvo.id, pagamentos[2].id);
+  app.run("modelo = new Orcamento(obterOrcamento(orcamentos[0].id))");
+  assert.equal(app.run("modelo.calcularTotalPago()"), 0.3);
+  assert.equal(app.run("modelo.obterSituacaoFinanceira()"), "Parcialmente pago");
+  pagamentos.slice(0, 2).forEach((p) => chamar(app, "removerPagamento", salvo.id, p.id));
+  app.run("modelo = new Orcamento(obterOrcamento(orcamentos[0].id))");
+  assert.equal(app.run("modelo.obterSituacaoFinanceira()"), "Em aberto");
+  assert.equal(registros(app)[0].totalFinal, salvo.totalFinal);
+});
+
+test("bloqueia pagamento zero, negativo, excessivo, forma livre, data inválida e observação longa", async () => {
+  const salvo = await orcamentoSalvo(); const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo]) });
+  for (const dados of [pagamento(0), pagamento(-1), pagamento(salvo.totalFinal + 0.01), pagamento(1.001), pagamento(1, "Transferência"),
+    { ...pagamento(), data: "2026-02-30" }, { ...pagamento(), data: "2026-13-01" }, { ...pagamento(), data: "" },
+    { ...pagamento(), observacao: "a".repeat(201) }]) {
+    assert.throws(() => chamar(app, "registrarPagamento", salvo.id, dados));
+    assert.deepEqual(registros(app), [salvo]);
+  }
+  chamar(app, "registrarPagamento", salvo.id, { ...pagamento(), data: "2028-02-29" });
+  assert.equal(registros(app)[0].pagamentos[0].data, "2028-02-29");
+});
+
+test("financeiro usa total histórico salvo e nunca exibe saldo negativo", () => {
+  const app = gerenciamento();
+  assert.equal(app.run("new Orcamento({ totalFinal: 100 }).calcularSaldoAberto()"), 100);
+  assert.equal(app.run(`new Orcamento({ totalFinal: 1, pagamentos: [${JSON.stringify(pagamento(2))}] }).calcularSaldoAberto()`), 0);
+  assert.equal(app.run("new Orcamento({ totalFinal: 0 }).obterSituacaoFinanceira()"), "Em aberto");
+});
+
+test("listagem ordenada, busca parcial normalizada e filtros combinados", async () => {
+  const salvo = await orcamentoSalvo();
+  salvo.cliente.nome = "Léonardo   Bernardes"; salvo.cliente.codigo = "CLI-078";
+  salvo.dataCriacao = "2026-10-01";
+  const novo = { ...salvo, id: "novo", codigo: "ORC-002", dataCriacao: "2026-10-02", status: "Em andamento", pagamentos: [{ id: "p1", ...pagamento() }] };
+  const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo, novo]) });
+  assert.equal(app.obter("lista-orcamentos").children[0].children[0].textContent, "ORC-002");
+  for (const termo of ["  LEONARDO  bern ", "078", "orc-00", "bernard"]) {
+    app.obter("busca").value = termo; app.obter("busca").listeners.input();
+    assert.equal(app.obter("lista-orcamentos").children.length, 2);
+  }
+  app.obter("filtro-status").value = "Em andamento"; app.obter("filtro-financeiro").value = "Parcialmente pago";
+  app.obter("filtro-financeiro").listeners.change();
+  assert.equal(app.obter("lista-orcamentos").children.length, 1);
+  app.obter("filtro-financeiro").value = "Pago"; app.obter("filtro-financeiro").listeners.change();
+  assert.equal(app.obter("lista-orcamentos").children.length, 0);
+  assert.equal(app.obter("vazio-titulo").textContent, "Nenhum orçamento encontrado.");
+});
+
+test("detalhes mostram snapshots, histórico e condições; Vencido não muda o status", async () => {
+  const salvo = await orcamentoSalvo(); salvo.dataValidade = "2000-01-01";
+  salvo.condicoesPagamento = "50% de entrada"; salvo.observacoes = "<script>texto literal</script>";
+  const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo]) });
+  chamar(app, "visualizar", salvo.id);
+  const texto = textoFilhos(app.obter("ver-conteudo"));
+  for (const valor of ["Vencido", salvo.cliente.nome, salvo.itens[0].nomeServico, "Pagamentos", "50% de entrada", salvo.observacoes]) assert.ok(texto.includes(valor));
+  assert.equal(registros(app)[0].status, "Pendente");
+  chamar(app, "registrarPagamento", salvo.id, pagamento());
+  chamar(app, "alterarStatus", salvo.id, "Finalizado");
+  assert.equal(app.run("new Orcamento(obterOrcamento(orcamentos[0].id)).obterSituacaoFinanceira()"), "Parcialmente pago");
+  const atual = registros(app)[0]; assert.deepEqual({ ...atual, status: salvo.status, pagamentos: [] }, salvo);
+  assert.equal(chamar(app, "vencido", atual), false);
+  assert.throws(() => chamar(app, "alterarStatus", salvo.id, "Vencido"));
+});
+
+test("modal registra pagamento com máscara, data atual, bloqueia duplo envio e confirma exclusão", async () => {
+  const salvo = await orcamentoSalvo(); const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo]) });
+  chamar(app, "abrirPagamento", salvo.id);
+  assert.equal(app.obter("pagamento-data").value, app.run("Orcamento.dataAtual()"));
+  app.obter("pagamento-valor").value = "10000"; app.obter("pagamento-valor").listeners.input();
+  assert.match(app.obter("pagamento-valor").value, /100,00/);
+  app.obter("pagamento-forma").value = "Pix";
+  const enviar = () => app.obter("pagamento-form").listeners.submit({ preventDefault() {} });
+  await Promise.all([enviar(), enviar()]);
+  assert.equal(registros(app)[0].pagamentos.length, 1);
+  chamar(app, "visualizar", salvo.id);
+  const p = registros(app)[0].pagamentos[0]; chamar(app, "abrirExclusao", salvo.id, p.id);
+  assert.equal(app.obter("excluir-titulo").textContent, "Excluir pagamento?");
+  assert.match(app.obter("excluir-mensagem").textContent, /100,00.*Pix/);
+  assert.equal(registros(app)[0].pagamentos.length, 1);
+  await app.obter("confirmar-exclusao").listeners.click();
+  assert.equal(registros(app)[0].pagamentos.length, 0);
+  assert.match(textoFilhos(app.obter("ver-conteudo")), /Nenhum pagamento registrado/);
+});
+
+test("excluir orçamento avisa pagamentos e preserva sequência antiga sem contador", async () => {
+  const salvo = await orcamentoSalvo(); salvo.codigo = "ORC-009"; salvo.pagamentos = [{ id: "p1", ...pagamento() }];
+  const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo]) }); chamar(app, "abrirExclusao", salvo.id);
+  assert.equal(app.obter("excluir-aviso").hidden, false);
+  assert.equal(app.obter("excluir-mensagem").textContent, "O orçamento ORC-009 será excluído permanentemente.");
+  await app.obter("confirmar-exclusao").listeners.click(); assert.equal(registros(app).length, 0);
+  const criar = ambiente({ ...catalogos(), ...Object.fromEntries(app.dados) }); preparar(criar); await enviar(criar);
+  assert.equal(registros(criar)[0].codigo, "ORC-010");
+});
+
+test("edição preserva identidade, data, status, pagamentos e preços históricos; novos itens usam catálogo atual", async () => {
+  const salvo = await orcamentoSalvo(); salvo.status = "Em andamento"; salvo.dataCriacao = "2026-01-10";
+  salvo.pagamentos = [{ id: "p1", ...pagamento(1000) }];
+  const app = ambiente({ ...catalogos(), pizzol_orcamentos: JSON.stringify([salvo]),
+    pizzol_servicos: JSON.stringify([{ ...servicoA, preco: 150 }, { ...servicoB, preco: 200 }]),
+    pizzol_clientes: JSON.stringify([{ ...cliente, nome: "Nome novo", rua: "Rua nova" }]) }, salvo.id);
+  assert.equal(app.obter("busca-cliente").value, "001 - Cliente de teste");
+  assert.equal(app.run("rascunho.itens[0].precoUnitario"), 95);
+  const quantidade = app.obter("lista-itens").children[0].children[3].children[0];
+  quantidade.value = "50"; quantidade.listeners.input();
+  adicionar(app, "s2", "2");
+  preencher(app, { validadeDias: "30", adicionalValor: "10", observacoes: "Editado" }); await enviar(app);
+  const atual = registros(app)[0];
+  for (const campo of ["id", "codigo", "dataCriacao", "status"]) assert.equal(atual[campo], salvo[campo]);
+  assert.deepEqual(atual.pagamentos, salvo.pagamentos); assert.deepEqual(atual.cliente, salvo.cliente);
+  assert.equal(atual.itens[0].precoUnitario, 95); assert.equal(atual.itens[0].quantidade, 50);
+  assert.equal(atual.itens[1].precoUnitario, 200); assert.equal(atual.itens[1].subtotal, 400);
+  assert.equal(atual.totalFinal, 5160); assert.equal(atual.dataValidade, "2026-02-09");
+  assert.equal(app.janela.location.href, "./orcamentos.html");
+  assert.equal(app.dados.has("pizzol_proximo_codigo_orcamento"), false);
+});
+
+test("edição mantém cliente e serviços removidos do catálogo, permitindo mudar quantidade", async () => {
+  const salvo = await orcamentoSalvo();
+  const app = ambiente({ pizzol_orcamentos: JSON.stringify([salvo]) }, salvo.id);
+  preencher(app, { observacoes: "Cadastro removido" }); await enviar(app);
+  assert.deepEqual(registros(app)[0].cliente, salvo.cliente);
+  assert.deepEqual(registros(app)[0].itens, salvo.itens);
+  assert.equal(registros(app)[0].observacoes, "Cadastro removido");
+});
+
+test("edição troca cliente e cria snapshot correspondente sem alterar o anterior", async () => {
+  const salvo = await orcamentoSalvo();
+  const outro = { ...cliente, id: "c3", codigo: "003", nome: "Outro cliente", rua: "Outra rua" };
+  const app = ambiente({ ...catalogos(), pizzol_clientes: JSON.stringify([cliente, outro]), pizzol_orcamentos: JSON.stringify([salvo]) }, salvo.id);
+  selecionar(app, "cliente", "c3"); await enviar(app);
+  assert.equal(registros(app)[0].clienteId, "c3"); assert.equal(registros(app)[0].cliente.nome, outro.nome);
+  assert.equal(registros(app)[0].cliente.endereco.rua, outro.rua); assert.equal(salvo.cliente.nome, cliente.nome);
+});
+
+test("edição impede total inferior ao já pago, inclusive pagamento recebido em outra aba", async () => {
+  const salvo = await orcamentoSalvo();
+  const app = ambiente({ ...catalogos(), pizzol_orcamentos: JSON.stringify([salvo]) }, salvo.id);
+  const comPagamento = { ...salvo, status: "Finalizado", pagamentos: [{ id: "p1", ...pagamento(5000) }] };
+  app.storage.setItem("pizzol_orcamentos", JSON.stringify([comPagamento]));
+  preencher(app, { descontoPercentual: "50" }); await enviar(app);
+  assert.deepEqual(registros(app), [comPagamento]);
+  assert.match(app.obter("salvar-erro").textContent, /O total do orçamento não pode ser menor que o valor já pago de R\$\s5\.000,00/);
+  preencher(app, { descontoPercentual: "0", observacoes: "Nova observação" }); await enviar(app);
+  assert.equal(registros(app)[0].status, "Finalizado"); assert.deepEqual(registros(app)[0].pagamentos, comPagamento.pagamentos);
+});
+
+test("edição não sobrescreve outra edição nem recria orçamento excluído", async () => {
+  const salvo = await orcamentoSalvo();
+  for (const lista of [[], [{ ...salvo, observacoes: "Alterado em outra aba" }]]) {
+    const app = ambiente({ ...catalogos(), pizzol_orcamentos: JSON.stringify([salvo]) }, salvo.id);
+    app.storage.setItem("pizzol_orcamentos", JSON.stringify(lista)); preencher(app, { observacoes: "Minha edição" }); await enviar(app);
+    assert.deepEqual(registros(app), lista); assert.equal(app.obter("salvar-erro").hidden, false);
+  }
+});
+
+test("falha de gravação de pagamento preserva formulário e dados; tentativa seguinte funciona", async () => {
+  const salvo = await orcamentoSalvo(); const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo]) });
+  chamar(app, "abrirPagamento", salvo.id);
+  app.obter("pagamento-valor").value = "100,00"; app.obter("pagamento-forma").value = "Pix";
+  const gravar = app.storage.setItem; app.storage.setItem = () => { throw new Error("Armazenamento cheio"); };
+  await app.obter("pagamento-form").listeners.submit({ preventDefault() {} });
+  assert.deepEqual(registros(app), [salvo]); assert.equal(app.obter("pagamento-modal").open, true);
+  assert.equal(app.obter("pagamento-erro").hidden, false); assert.equal(app.obter("pagamento-valor").value, "100,00");
+  app.storage.setItem = gravar; await app.obter("pagamento-form").listeners.submit({ preventDefault() {} });
+  assert.equal(registros(app)[0].pagamentos.length, 1);
+});
+
+test("pagamentos releem saldo atual; dados corrompidos não são substituídos", async () => {
+  const salvo = await orcamentoSalvo(); const app = gerenciamento({ pizzol_orcamentos: JSON.stringify([salvo]) });
+  chamar(app, "abrirPagamento", salvo.id);
+  chamar(app, "registrarPagamento", salvo.id, pagamento(salvo.totalFinal - 1));
+  assert.throws(() => chamar(app, "registrarPagamento", salvo.id, pagamento(2)), /saldo/);
+  assert.equal(registros(app)[0].pagamentos.length, 1);
+  app.storage.setItem("pizzol_orcamentos", "corrompido"); app.run("atualizarPagina()");
+  assert.equal(app.obter("storage-error").hidden, false); assert.equal(app.dados.get("pizzol_orcamentos"), "corrompido");
+  assert.throws(() => chamar(app, "registrarPagamento", salvo.id, pagamento(1)));
+  assert.equal(app.dados.get("pizzol_orcamentos"), "corrompido");
+});
+
+test("link do Dashboard abre automaticamente o orçamento correto e preserva a listagem", async () => {
+  const primeiro = await orcamentoSalvo();
+  const segundo = { ...primeiro, id: "segundo", codigo: "ORC-002", cliente: { ...primeiro.cliente, nome: "Cliente do segundo" } };
+  const inicial = { pizzol_orcamentos: JSON.stringify([primeiro, segundo]) };
+  const app = gerenciamento(inicial, "?origem=dashboard&orcamento=ORC-002");
+  assert.equal(app.obter("ver-modal").open, true);
+  assert.equal(app.obter("ver-titulo").textContent, "Ver orçamento — ORC-002");
+  assert.match(textoFilhos(app.obter("ver-conteudo")), /Cliente do segundo/);
+  assert.equal(app.obter("lista-orcamentos").children.length, 2);
+  app.obter("ver-modal").close();
+  app.obter("busca").value = "ORC-001"; app.obter("busca").listeners.input();
+  assert.equal(app.obter("lista-orcamentos").children.length, 1);
+  assert.notEqual(app.obter("ver-modal").open, true);
+  assert.deepEqual(Object.fromEntries(app.dados), inicial);
+});
+
+test("link do Dashboard inexistente ou vazio mantém a listagem e não abre outro orçamento", async () => {
+  const salvo = await orcamentoSalvo();
+  for (const search of ["?orcamento=ORC-999", "?orcamento=", ""]) {
+    const inicial = { pizzol_orcamentos: JSON.stringify([salvo]) };
+    const app = gerenciamento(inicial, search);
+    assert.notEqual(app.obter("ver-modal").open, true);
+    assert.equal(app.obter("lista-orcamentos").children.length, 1);
+    assert.equal(app.obter("storage-error").hidden, search !== "?orcamento=ORC-999");
+    assert.deepEqual(Object.fromEntries(app.dados), inicial);
+  }
+});
+
+test("link do Dashboard com armazenamento corrompido mantém o aviso original e não altera dados", () => {
+  const inicial = { pizzol_orcamentos: "corrompido" };
+  const app = gerenciamento(inicial, "?orcamento=ORC-001");
+  assert.notEqual(app.obter("ver-modal").open, true);
+  assert.equal(app.obter("storage-error").hidden, false);
+  assert.doesNotMatch(app.obter("storage-error").textContent, /Orçamento não encontrado/);
+  assert.deepEqual(Object.fromEntries(app.dados), inicial);
 });

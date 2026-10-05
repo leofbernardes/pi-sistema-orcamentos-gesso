@@ -8,14 +8,23 @@
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="../css/clientes.css" />
     <link rel="stylesheet" href="../css/novo-orcamento.css" />
+    <script src="../js/models/entidade.js" defer></script>
+    <script src="../js/models/cliente.js" defer></script>
+    <script src="../js/models/servico.js" defer></script>
     <script src="../js/models/item-orcamento.js" defer></script>
+    <script src="../js/models/pagamento.js" defer></script>
+    <script src="../js/utils/orcamentos.js" defer></script>
     <script src="../js/models/orcamento.js" defer></script>
     <script src="../js/novo-orcamento.js" defer></script>
   </head>
   <body class="dashboard clientes-page orcamento-page">
     <header class="header">
       <div class="header-content">
-        <a class="brand" href="../index.html" aria-label="Pizzol Decoração em Gesso — início">
+        <a
+          class="brand"
+          href="../index.html"
+          aria-label="Pizzol Decoração em Gesso — início"
+        >
           <span class="brand-name">Pizzol<span class="brand-dot">.</span></span>
           <span class="brand-description">Decoração em Gesso</span>
         </a>
@@ -25,119 +34,451 @@
           <a href="./orcamentos.html">Orçamentos</a>
           <a href="./servicos.html">Serviços e Preços</a>
         </nav>
-        <a class="primary-button" href="./novo-orcamento.html" aria-current="page"><span aria-hidden="true">+</span> Novo orçamento</a>
+        <a
+          class="primary-button"
+          href="./novo-orcamento.html"
+          aria-current="page"
+          ><span aria-hidden="true">+</span> Novo orçamento</a
+        >
       </div>
     </header>
     <main class="main-content">
       <div class="page-heading">
-        <h1>Novo Orçamento</h1>
-        <p>Preencha os dados abaixo para criar uma nova proposta.</p>
+        <h1 id="pagina-titulo">Novo Orçamento</h1>
+        <p id="pagina-descricao">
+          Preencha os dados abaixo para criar uma nova proposta.
+        </p>
       </div>
-      <p id="storage-error" class="error-message storage-error" role="alert" hidden></p>
-      <p id="sucesso" class="success-message" role="status" tabindex="-1" hidden></p>
+      <p
+        id="storage-error"
+        class="error-message storage-error"
+        role="alert"
+        hidden
+      ></p>
+      <p
+        id="sucesso"
+        class="success-message"
+        role="status"
+        tabindex="-1"
+        hidden
+      ></p>
       <form id="orcamento-form" novalidate>
-        <section class="recent-section budget-card" aria-labelledby="identificacao-titulo">
-          <div class="section-heading"><h2 id="identificacao-titulo">Identificação</h2><span class="section-note">Campos com * são obrigatórios</span></div>
+        <section
+          class="recent-section budget-card"
+          aria-labelledby="identificacao-titulo"
+        >
+          <div class="section-heading">
+            <h2 id="identificacao-titulo">Identificação</h2>
+            <span class="section-note">Campos com * são obrigatórios</span>
+          </div>
           <div class="card-body identification-grid">
-            <div class="form-field"><span class="field-label">Código</span><p class="readonly-value">Gerado ao salvar</p></div>
-            <div class="form-field"><span class="field-label">Data de criação</span><time id="data-criacao" class="readonly-value"></time></div>
+            <div class="form-field">
+              <span class="field-label">Código</span>
+              <p id="codigo-orcamento" class="readonly-value">
+                Gerado ao salvar
+              </p>
+            </div>
+            <div class="form-field">
+              <span class="field-label">Data de criação</span
+              ><time id="data-criacao" class="readonly-value"></time>
+            </div>
             <div class="form-field">
               <label for="validadeDias">Validade do orçamento (dias) *</label>
-              <input id="validadeDias" name="validadeDias" type="number" min="1" max="365" step="1" value="7" required aria-describedby="data-validade erro-validadeDias" />
+              <input
+                id="validadeDias"
+                name="validadeDias"
+                type="number"
+                min="1"
+                max="365"
+                step="1"
+                value="7"
+                required
+                aria-describedby="data-validade erro-validadeDias"
+              />
               <p id="data-validade" class="field-hint" aria-live="polite"></p>
               <p id="erro-validadeDias" class="error-message" hidden></p>
             </div>
-            <div class="form-field"><span class="field-label">Status</span><div class="readonly-value"><span class="status status-pendente">Pendente</span></div></div>
+            <div class="form-field">
+              <span class="field-label">Status</span>
+              <div class="readonly-value">
+                <span id="status-orcamento" class="status status-pendente"
+                  >Pendente</span
+                >
+              </div>
+            </div>
           </div>
         </section>
-        <section class="recent-section budget-card search-card" aria-labelledby="cliente-titulo">
-          <div class="section-heading"><h2 id="cliente-titulo">Cliente</h2></div>
+        <section
+          class="recent-section budget-card search-card"
+          aria-labelledby="cliente-titulo"
+        >
+          <div class="section-heading">
+            <h2 id="cliente-titulo">Cliente</h2>
+          </div>
           <div class="card-body">
             <div class="form-field">
               <label for="busca-cliente">Selecione um cliente *</label>
               <input id="clienteId" name="clienteId" type="hidden" />
               <div id="autocomplete-cliente" class="autocomplete">
-                <input id="busca-cliente" name="busca-cliente" placeholder="Buscar cliente por código ou nome..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="resultados-cliente" aria-required="true" aria-describedby="erro-clienteId" />
-                <ul id="resultados-cliente" class="search-results" role="listbox" aria-label="Clientes encontrados" hidden></ul>
+                <input
+                  id="busca-cliente"
+                  name="busca-cliente"
+                  placeholder="Buscar cliente por código ou nome..."
+                  autocomplete="off"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-controls="resultados-cliente"
+                  aria-required="true"
+                  aria-describedby="erro-clienteId"
+                />
+                <ul
+                  id="resultados-cliente"
+                  class="search-results"
+                  role="listbox"
+                  aria-label="Clientes encontrados"
+                  hidden
+                ></ul>
               </div>
               <p id="erro-clienteId" class="error-message" hidden></p>
             </div>
             <dl id="cliente-resumo" class="client-details" hidden>
-              <dt>Código</dt><dd id="cliente-codigo"></dd>
-              <dt>Nome</dt><dd id="cliente-nome"></dd>
-              <dt>Telefone / WhatsApp</dt><dd id="cliente-telefone"></dd>
-              <dt>Endereço cadastrado</dt><dd id="cliente-endereco"></dd>
+              <dt>Código</dt>
+              <dd id="cliente-codigo"></dd>
+              <dt>Nome</dt>
+              <dd id="cliente-nome"></dd>
+              <dt>Telefone / WhatsApp</dt>
+              <dd id="cliente-telefone"></dd>
+              <dt>Endereço cadastrado</dt>
+              <dd id="cliente-endereco"></dd>
             </dl>
           </div>
         </section>
-        <section class="recent-section budget-card" aria-labelledby="obra-titulo">
-          <div class="section-heading"><h2 id="obra-titulo">Local da obra</h2><button id="copiar-endereco" class="details-button" type="button">Usar endereço do cliente</button></div>
+        <section
+          class="recent-section budget-card"
+          aria-labelledby="obra-titulo"
+        >
+          <div class="section-heading">
+            <h2 id="obra-titulo">Local da obra</h2>
+            <button id="copiar-endereco" class="details-button" type="button">
+              Usar endereço do cliente
+            </button>
+          </div>
           <div class="card-body">
-            <p id="copiar-aviso" class="field-hint" role="status" hidden>Selecione um cliente primeiro.</p>
+            <p id="copiar-aviso" class="field-hint" role="status" hidden>
+              Selecione um cliente primeiro.
+            </p>
             <div class="client-form-grid address-grid">
-              <div class="form-field"><label for="rua">Rua *</label><input id="rua" name="rua" maxlength="120" required aria-describedby="erro-rua" /><p id="erro-rua" class="error-message" hidden></p></div>
-              <div class="form-field"><label for="numero">Número</label><input id="numero" name="numero" inputmode="numeric" maxlength="8" aria-describedby="erro-numero" /><p id="erro-numero" class="error-message" hidden></p></div>
-              <div class="form-field"><label for="cidade">Cidade *</label><input id="cidade" name="cidade" maxlength="60" required aria-describedby="erro-cidade" /><p id="erro-cidade" class="error-message" hidden></p></div>
-              <div class="form-field"><label for="cep">CEP</label><input id="cep" name="cep" inputmode="numeric" maxlength="9" placeholder="00000-000" aria-describedby="erro-cep" /><p id="erro-cep" class="error-message" hidden></p></div>
+              <div class="form-field">
+                <label for="rua">Rua *</label
+                ><input
+                  id="rua"
+                  name="rua"
+                  maxlength="120"
+                  required
+                  aria-describedby="erro-rua"
+                />
+                <p id="erro-rua" class="error-message" hidden></p>
+              </div>
+              <div class="form-field">
+                <label for="numero">Número</label
+                ><input
+                  id="numero"
+                  name="numero"
+                  inputmode="numeric"
+                  maxlength="8"
+                  aria-describedby="erro-numero"
+                />
+                <p id="erro-numero" class="error-message" hidden></p>
+              </div>
+              <div class="form-field">
+                <label for="cidade">Cidade *</label
+                ><input
+                  id="cidade"
+                  name="cidade"
+                  maxlength="60"
+                  required
+                  aria-describedby="erro-cidade"
+                />
+                <p id="erro-cidade" class="error-message" hidden></p>
+              </div>
+              <div class="form-field">
+                <label for="cep">CEP</label
+                ><input
+                  id="cep"
+                  name="cep"
+                  inputmode="numeric"
+                  maxlength="9"
+                  placeholder="00000-000"
+                  aria-describedby="erro-cep"
+                />
+                <p id="erro-cep" class="error-message" hidden></p>
+              </div>
             </div>
           </div>
         </section>
-        <section class="recent-section budget-card search-card" aria-labelledby="servicos-titulo">
-          <div class="section-heading"><div><h2 id="servicos-titulo">Serviços</h2><p>Adicione os serviços que fazem parte da proposta.</p></div></div>
+        <section
+          class="recent-section budget-card search-card"
+          aria-labelledby="servicos-titulo"
+        >
+          <div class="section-heading">
+            <div>
+              <h2 id="servicos-titulo">Serviços</h2>
+              <p>Adicione os serviços que fazem parte da proposta.</p>
+            </div>
+          </div>
           <div class="card-body">
-            <div class="service-grid" role="group" aria-label="Adicionar serviço">
-              <div class="form-field"><label for="tipo">Tipo</label><select id="tipo" name="tipo"><option value="todos">Todos</option><option>Forro</option><option>Parede</option><option>Sanca / Cortineiro</option><option>Moldura</option><option>Gesso Liso</option><option>Outro</option></select></div>
+            <div
+              class="service-grid"
+              role="group"
+              aria-label="Adicionar serviço"
+            >
+              <div class="form-field">
+                <label for="tipo">Tipo</label
+                ><select id="tipo" name="tipo">
+                  <option value="todos">Todos</option>
+                  <option>Forro</option>
+                  <option>Parede</option>
+                  <option>Sanca / Cortineiro</option>
+                  <option>Moldura</option>
+                  <option>Gesso Liso</option>
+                  <option>Outro</option>
+                </select>
+              </div>
               <div class="form-field service-select">
                 <label for="busca-servico">Serviço *</label>
                 <input id="servicoId" name="servicoId" type="hidden" />
                 <div id="autocomplete-servico" class="autocomplete">
-                  <input id="busca-servico" name="busca-servico" placeholder="Buscar serviço por código ou nome..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="resultados-servico" aria-required="true" aria-describedby="erro-servicoId" />
-                  <ul id="resultados-servico" class="search-results" role="listbox" aria-label="Serviços encontrados" hidden></ul>
+                  <input
+                    id="busca-servico"
+                    name="busca-servico"
+                    placeholder="Buscar serviço por código ou nome..."
+                    autocomplete="off"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="resultados-servico"
+                    aria-required="true"
+                    aria-describedby="erro-servicoId"
+                  />
+                  <ul
+                    id="resultados-servico"
+                    class="search-results"
+                    role="listbox"
+                    aria-label="Serviços encontrados"
+                    hidden
+                  ></ul>
                 </div>
                 <p id="erro-servicoId" class="error-message" hidden></p>
               </div>
-              <div class="form-field"><label for="unidade">Unidade</label><input id="unidade" readonly placeholder="—" /></div>
-              <div class="form-field"><label for="precoUnitario">Preço unitário</label><input id="precoUnitario" readonly placeholder="R$ 0,00" /></div>
-              <div class="form-field"><label for="quantidade">Quantidade *</label><input id="quantidade" name="quantidade" inputmode="decimal" placeholder="Ex.: 62,25" aria-describedby="erro-quantidade" /><p id="erro-quantidade" class="error-message" hidden></p></div>
+              <div class="form-field">
+                <label for="unidade">Unidade</label
+                ><input id="unidade" readonly placeholder="—" />
+              </div>
+              <div class="form-field">
+                <label for="precoUnitario">Preço unitário</label
+                ><input id="precoUnitario" readonly placeholder="R$ 0,00" />
+              </div>
+              <div class="form-field">
+                <label for="quantidade">Quantidade *</label
+                ><input
+                  id="quantidade"
+                  name="quantidade"
+                  inputmode="decimal"
+                  placeholder="Ex.: 62,25"
+                  aria-describedby="erro-quantidade"
+                />
+                <p id="erro-quantidade" class="error-message" hidden></p>
+              </div>
             </div>
-            <div class="add-service-action"><button id="adicionar-servico" class="primary-button" type="button"><span aria-hidden="true">+</span> Adicionar serviço</button></div>
+            <div class="add-service-action">
+              <button
+                id="adicionar-servico"
+                class="primary-button"
+                type="button"
+              >
+                <span aria-hidden="true">+</span> Adicionar serviço
+              </button>
+            </div>
             <p id="erro-itens" class="error-message" role="alert" hidden></p>
           </div>
-          <div id="itens-regiao" class="table-container" tabindex="0" role="region" aria-label="Itens do orçamento; role horizontalmente em telas pequenas" aria-describedby="erro-itens">
-            <table><thead><tr><th scope="col">Serviço</th><th scope="col">Tipo</th><th scope="col">Unidade</th><th scope="col">Quantidade</th><th scope="col">Preço unitário</th><th scope="col">Subtotal</th><th scope="col">Ação</th></tr></thead><tbody id="lista-itens"></tbody></table>
+          <div
+            id="itens-regiao"
+            class="table-container"
+            tabindex="0"
+            role="region"
+            aria-label="Itens do orçamento; role horizontalmente em telas pequenas"
+            aria-describedby="erro-itens"
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Serviço</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Unidade</th>
+                  <th scope="col">Quantidade</th>
+                  <th scope="col">Preço unitário</th>
+                  <th scope="col">Subtotal</th>
+                  <th scope="col">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="lista-itens"></tbody>
+            </table>
           </div>
-          <div id="itens-vazio" class="empty-state"><p>Nenhum serviço adicionado.</p><p>Selecione um serviço e informe a quantidade para começar.</p></div>
+          <div id="itens-vazio" class="empty-state">
+            <p>Nenhum serviço adicionado.</p>
+            <p>Selecione um serviço e informe a quantidade para começar.</p>
+          </div>
         </section>
-        <section class="recent-section budget-card" aria-labelledby="resumo-titulo">
-          <div class="section-heading"><h2 id="resumo-titulo">Resumo do orçamento</h2></div>
+        <section
+          class="recent-section budget-card"
+          aria-labelledby="resumo-titulo"
+        >
+          <div class="section-heading">
+            <h2 id="resumo-titulo">Resumo do orçamento</h2>
+          </div>
           <div class="card-body financial-grid">
             <div class="financial-fields">
-              <div class="form-field"><label for="adicionalValor">Valor adicional</label><input id="adicionalValor" name="adicionalValor" inputmode="decimal" value="R$ 0,00" aria-describedby="erro-adicionalValor" /><p id="erro-adicionalValor" class="error-message" hidden></p></div>
-              <div class="form-field"><label for="adicionalDescricao">Descrição do adicional</label><input id="adicionalDescricao" name="adicionalDescricao" maxlength="120" placeholder="Ex.: Deslocamento" aria-describedby="erro-adicionalDescricao" /><p id="erro-adicionalDescricao" class="error-message" hidden></p></div>
-              <div class="form-field"><label for="descontoPercentual">Desconto (%)</label><input id="descontoPercentual" name="descontoPercentual" inputmode="decimal" value="0" aria-describedby="valor-desconto erro-descontoPercentual" /><p id="valor-desconto" class="field-hint" aria-live="polite">Valor do desconto: R$ 0,00</p><p id="erro-descontoPercentual" class="error-message" hidden></p></div>
+              <div class="form-field">
+                <label for="adicionalValor">Valor adicional</label
+                ><input
+                  id="adicionalValor"
+                  name="adicionalValor"
+                  inputmode="decimal"
+                  value="R$ 0,00"
+                  aria-describedby="erro-adicionalValor"
+                />
+                <p id="erro-adicionalValor" class="error-message" hidden></p>
+              </div>
+              <div class="form-field">
+                <label for="adicionalDescricao">Descrição do adicional</label
+                ><input
+                  id="adicionalDescricao"
+                  name="adicionalDescricao"
+                  maxlength="120"
+                  placeholder="Ex.: Deslocamento"
+                  aria-describedby="erro-adicionalDescricao"
+                />
+                <p
+                  id="erro-adicionalDescricao"
+                  class="error-message"
+                  hidden
+                ></p>
+              </div>
+              <div class="form-field">
+                <label for="descontoPercentual">Desconto (%)</label
+                ><input
+                  id="descontoPercentual"
+                  name="descontoPercentual"
+                  inputmode="decimal"
+                  value="0"
+                  aria-describedby="valor-desconto erro-descontoPercentual"
+                />
+                <p id="valor-desconto" class="field-hint" aria-live="polite">
+                  Valor do desconto: R$ 0,00
+                </p>
+                <p
+                  id="erro-descontoPercentual"
+                  class="error-message"
+                  hidden
+                ></p>
+              </div>
             </div>
-            <div class="financial-summary" aria-live="polite" aria-atomic="true">
-              <dl><dt>Subtotal dos serviços</dt><dd id="resumo-subtotal">R$ 0,00</dd><dt>Adicional</dt><dd id="resumo-adicional">R$ 0,00</dd><dt>Desconto</dt><dd id="resumo-desconto">R$ 0,00</dd></dl>
-              <div class="final-total"><span>Total final</span><strong id="resumo-total">R$ 0,00</strong></div>
+            <div
+              class="financial-summary"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <dl>
+                <dt>Subtotal dos serviços</dt>
+                <dd id="resumo-subtotal">R$ 0,00</dd>
+                <dt>Adicional</dt>
+                <dd id="resumo-adicional">R$ 0,00</dd>
+                <dt>Desconto</dt>
+                <dd id="resumo-desconto">R$ 0,00</dd>
+              </dl>
+              <div class="final-total">
+                <span>Total final</span
+                ><strong id="resumo-total">R$ 0,00</strong>
+              </div>
             </div>
           </div>
         </section>
-        <section class="recent-section budget-card" aria-labelledby="condicoes-titulo">
-          <div class="section-heading"><h2 id="condicoes-titulo">Condições e observações</h2></div>
+        <section
+          class="recent-section budget-card"
+          aria-labelledby="condicoes-titulo"
+        >
+          <div class="section-heading">
+            <h2 id="condicoes-titulo">Condições e observações</h2>
+          </div>
           <div class="card-body notes-grid">
-            <div class="form-field"><label for="condicoesPagamento">Condições de pagamento</label><textarea id="condicoesPagamento" name="condicoesPagamento" rows="4" maxlength="200" placeholder="Ex.: 40% de entrada e restante na conclusão do serviço." aria-describedby="contador-condicoesPagamento erro-condicoesPagamento"></textarea><p id="contador-condicoesPagamento" class="field-counter">0 / 200</p><p id="erro-condicoesPagamento" class="error-message" hidden></p></div>
-            <div class="form-field"><label for="observacoes">Observações</label><textarea id="observacoes" name="observacoes" rows="4" maxlength="500" placeholder="Detalhes da obra ou orientações ao cliente." aria-describedby="contador-observacoes erro-observacoes"></textarea><p id="contador-observacoes" class="field-counter">0 / 500</p><p id="erro-observacoes" class="error-message" hidden></p></div>
+            <div class="form-field">
+              <label for="condicoesPagamento">Condições de pagamento</label
+              ><textarea
+                id="condicoesPagamento"
+                name="condicoesPagamento"
+                rows="4"
+                maxlength="200"
+                placeholder="Ex.: 40% de entrada e restante na conclusão do serviço."
+                aria-describedby="contador-condicoesPagamento erro-condicoesPagamento"
+              ></textarea>
+              <p id="contador-condicoesPagamento" class="field-counter">
+                0 / 200
+              </p>
+              <p id="erro-condicoesPagamento" class="error-message" hidden></p>
+            </div>
+            <div class="form-field">
+              <label for="observacoes">Observações</label
+              ><textarea
+                id="observacoes"
+                name="observacoes"
+                rows="4"
+                maxlength="500"
+                placeholder="Detalhes da obra ou orientações ao cliente."
+                aria-describedby="contador-observacoes erro-observacoes"
+              ></textarea>
+              <p id="contador-observacoes" class="field-counter">0 / 500</p>
+              <p id="erro-observacoes" class="error-message" hidden></p>
+            </div>
           </div>
         </section>
         <p id="salvar-erro" class="error-message" role="alert" hidden></p>
-        <div class="dialog-actions form-actions"><button id="cancelar" class="details-button" type="button">Cancelar</button><button id="salvar-orcamento" class="primary-button" type="submit">Salvar orçamento</button></div>
+        <div class="dialog-actions form-actions">
+          <button id="cancelar" class="details-button" type="button">
+            Cancelar</button
+          ><button id="salvar-orcamento" class="primary-button" type="submit">
+            Salvar orçamento
+          </button>
+        </div>
       </form>
-      <footer class="page-footer">Pizzol Decoração em Gesso <span aria-hidden="true">·</span> Sistema de Orçamentos</footer>
+      <footer class="page-footer">
+        Pizzol Decoração em Gesso <span aria-hidden="true">·</span> Sistema de
+        Orçamentos
+      </footer>
     </main>
-    <dialog id="cancelar-modal" class="client-dialog" aria-labelledby="cancelar-titulo" aria-describedby="cancelar-mensagem">
-      <div class="dialog-heading"><h2 id="cancelar-titulo">Descartar orçamento?</h2></div>
-      <p id="cancelar-mensagem" class="delete-message">As informações preenchidas serão perdidas.</p>
-      <div class="dialog-actions"><button id="continuar-editando" class="details-button" type="button">Continuar editando</button><button id="descartar" class="details-button danger-button" type="button">Descartar</button></div>
+    <dialog
+      id="cancelar-modal"
+      class="client-dialog"
+      aria-labelledby="cancelar-titulo"
+      aria-describedby="cancelar-mensagem"
+    >
+      <div class="dialog-heading">
+        <h2 id="cancelar-titulo">Descartar orçamento?</h2>
+      </div>
+      <p id="cancelar-mensagem" class="delete-message">
+        As informações preenchidas serão perdidas.
+      </p>
+      <div class="dialog-actions">
+        <button id="continuar-editando" class="details-button" type="button">
+          Continuar editando</button
+        ><button
+          id="descartar"
+          class="details-button danger-button"
+          type="button"
+        >
+          Descartar
+        </button>
+      </div>
     </dialog>
   </body>
 </html>

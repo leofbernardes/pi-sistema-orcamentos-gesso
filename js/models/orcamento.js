@@ -4,20 +4,23 @@ class Orcamento {
     this.codigo = dados.codigo || "";
     this.dataCriacao = dados.dataCriacao || Orcamento.dataAtual();
     this.validadeDias = dados.validadeDias ?? 7;
-    this.dataValidade = Orcamento.calcularDataValidade(this.dataCriacao, this.validadeDias);
-    this.status = "Pendente";
+    this.dataValidade = dados.dataValidade || Orcamento.calcularDataValidade(this.dataCriacao, this.validadeDias);
+    this.status = dados.status || "Pendente";
     this.clienteId = dados.clienteId || "";
-    this.clienteCodigo = dados.clienteCodigo || "";
-    this.clienteNome = dados.clienteNome || "";
-    this.clienteTelefone = dados.clienteTelefone || "";
-    this.clienteEndereco = { ...dados.clienteEndereco };
+    this.clienteCodigo = dados.clienteCodigo ?? dados.cliente?.codigo ?? "";
+    this.clienteNome = dados.clienteNome ?? dados.cliente?.nome ?? "";
+    this.clienteTelefone = dados.clienteTelefone ?? dados.cliente?.telefone ?? "";
+    this.clienteEndereco = { ...(dados.clienteEndereco ?? dados.cliente?.endereco) };
     this.enderecoObra = { ...dados.enderecoObra };
     this.itens = (dados.itens || []).map((item) => new ItemOrcamento(item));
-    this.adicionalValor = dados.adicionalValor ?? 0;
-    this.adicionalDescricao = dados.adicionalDescricao || "";
+    this.adicionalValor = dados.adicionalValor ?? dados.adicional?.valor ?? 0;
+    this.adicionalDescricao = dados.adicionalDescricao ?? dados.adicional?.descricao ?? "";
     this.descontoPercentual = dados.descontoPercentual ?? 0;
     this.condicoesPagamento = dados.condicoesPagamento || "";
     this.observacoes = dados.observacoes || "";
+    this.pagamentos = (dados.pagamentos || []).map((pagamento) => new Pagamento(pagamento));
+    // Leitura financeira usa o total salvo; a edição recalcula a proposta explicitamente.
+    this.totalSalvo = dados.totalFinal;
   }
 
   static dataAtual() {
@@ -54,6 +57,43 @@ class Orcamento {
       - Math.round(this.calcularValorDesconto() * 100)) / 100;
   }
 
+  obterTotalFinanceiro() { return this.totalSalvo ?? this.calcularTotal(); }
+
+  calcularTotalPago() {
+    return this.pagamentos.reduce((soma, pagamento) => soma + Math.round(pagamento.valor * 100), 0) / 100;
+  }
+
+  calcularSaldoAberto() {
+    return Math.max(0, Math.round(this.obterTotalFinanceiro() * 100) - Math.round(this.calcularTotalPago() * 100)) / 100;
+  }
+
+  obterSituacaoFinanceira() {
+    if (this.calcularTotalPago() === 0) return "Em aberto";
+    return this.calcularSaldoAberto() > 0 ? "Parcialmente pago" : "Pago";
+  }
+
+  adicionarPagamento(dados) {
+    const pagamento = new Pagamento(dados);
+    if (Math.round(pagamento.valor * 100) > Math.round(this.calcularSaldoAberto() * 100)) {
+      throw new Error("O pagamento não pode ultrapassar o saldo em aberto.");
+    }
+    if (this.pagamentos.some((item) => item.id === pagamento.id)) throw new Error("Pagamento já registrado.");
+    this.pagamentos.push(pagamento);
+    return pagamento;
+  }
+
+  removerPagamento(id) {
+    if (!this.pagamentos.some((item) => item.id === id)) throw new Error("Pagamento não encontrado. Atualize a página.");
+    this.pagamentos = this.pagamentos.filter((item) => item.id !== id);
+  }
+
+  validarTotalPago() {
+    if (Math.round(this.calcularTotal() * 100) < Math.round(this.calcularTotalPago() * 100)) {
+      const pago = this.calcularTotalPago().toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      throw new Error(`O total do orçamento não pode ser menor que o valor já pago de ${pago}.`);
+    }
+  }
+
   toJSON() {
     return {
       id: this.id, codigo: this.codigo, dataCriacao: this.dataCriacao,
@@ -68,6 +108,7 @@ class Orcamento {
       descontoPercentual: this.descontoPercentual, descontoValor: this.calcularValorDesconto(),
       totalFinal: this.calcularTotal(), condicoesPagamento: this.condicoesPagamento,
       observacoes: this.observacoes,
+      pagamentos: this.pagamentos.map((pagamento) => ({ ...pagamento })),
     };
   }
 }

@@ -8,7 +8,7 @@ const vm = require("node:vm");
 const { randomUUID } = require("node:crypto");
 const raiz = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(raiz, "pages/servicos.html"), "utf8");
-const codigo = ["js/models/servico.js", "js/servicos.js"]
+const codigo = ["js/models/entidade.js", "js/models/servico.js", "js/servicos.js"]
   .map((arquivo) => fs.readFileSync(path.join(raiz, arquivo), "utf8")).join("\n");
 
 function elemento() {
