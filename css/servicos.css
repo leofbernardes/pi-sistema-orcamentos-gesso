@@ -1,4 +1,3 @@
-/* Apenas ajustes da nova página; os componentes vêm de style.css e clientes.css. */
 .servicos-page [hidden] {
   display: none;
 }
@@ -13,17 +12,10 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.servicos-page #confirmar-exclusao {
-  background: #a14f46;
-  border-color: #a14f46;
-  color: #fff;
-}
-.servicos-page #confirmar-exclusao:hover {
-  background: #863e36;
-  border-color: #863e36;
+.servicos-page th:nth-child(5) {
+  text-align: right;
 }
 .servicos-page button:disabled {
-  opacity: 0.6;
   cursor: wait;
 }
 @media (max-width: 700px) {

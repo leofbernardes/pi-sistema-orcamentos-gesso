@@ -5,6 +5,23 @@
   --muted: #777a70;
   --background: #f7f8f4;
   --border: #e7e8e1;
+  --surface: #ffffff;
+  --surface-muted: #fafbf8;
+  --olive-soft: #f0f3e7;
+  --border-hover: #c8cdbb;
+  --danger: #a14f46;
+  --danger-soft: #fbefed;
+  --danger-border: #d8b2ad;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --shadow-card: 0 2px 8px rgb(27 29 26 / 3%);
+  --shadow-popover: 0 8px 24px rgb(27 29 26 / 9%);
+  --control-height: 42px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
   margin: 0;
   background: var(--background);
   color: var(--text);
@@ -30,18 +47,18 @@
   margin: 0;
 }
 .dashboard :focus-visible {
-  outline: 3px solid var(--olive-dark);
-  outline-offset: 4px;
+  outline: 2px solid var(--olive-dark);
+  outline-offset: 3px;
 }
 .dashboard .header {
-  background: #ffffff;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 .dashboard .header-content {
-  max-width: 1280px;
-  min-height: 108px;
+  max-width: 1250px;
+  min-height: 92px;
   margin: auto;
-  padding: 20px 40px;
+  padding: 16px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -61,6 +78,9 @@
 .dashboard .brand-dot {
   color: var(--olive);
 }
+.dashboard .brand-dot:empty::before {
+  content: ".";
+}
 .dashboard .brand-description {
   margin-top: 3px;
   color: var(--olive-dark);
@@ -70,15 +90,16 @@
 .dashboard .navigation {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 .dashboard .navigation a {
-  padding: 10px 14px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
   white-space: nowrap;
 }
 .dashboard .navigation a:hover {
-  background: var(--background);
+  background: var(--olive-soft);
+  color: var(--olive-dark);
 }
 .dashboard .navigation a[aria-current="page"] {
   background: #f0f2e6;
@@ -89,9 +110,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 11px 18px;
-  border-radius: 6px;
+  gap: var(--space-sm);
+  min-height: var(--control-height);
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
   background: var(--olive);
   color: #1b1d1a;
   font-weight: 600;
@@ -109,7 +132,7 @@
 .dashboard .main-content {
   max-width: 1250px;
   margin: auto;
-  padding: 48px 40px 24px;
+  padding: 36px 40px 24px;
 }
 .dashboard .eyebrow {
   color: var(--olive-dark);
@@ -119,33 +142,39 @@
   margin-bottom: 8px;
 }
 .dashboard h1 {
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 600;
-  letter-spacing: -0.8px;
+  line-height: 1.25;
+  letter-spacing: -0.6px;
 }
 .dashboard .page-heading > p:last-child {
   margin-top: 8px;
   color: var(--muted);
+  font-size: 13px;
 }
 .dashboard .summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-  margin: 32px 0;
+  gap: var(--space-xl);
+  margin: var(--space-2xl) 0;
 }
-.dashboard .summary-card {
-  padding: 24px;
-  background: #ffffff;
+.dashboard .summary-card,
+.dashboard .recent-section {
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 .dashboard .summary-card {
+  padding: var(--space-xl);
+}
+.dashboard:not(.clientes-page) .summary-card {
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
     border-color 0.2s ease;
 }
-.dashboard .summary-card:hover {
+.dashboard:not(.clientes-page) .summary-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 14px rgb(27 29 26 / 7%);
   border-color: #b9c18e;
@@ -166,7 +195,7 @@
   place-items: center;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   color: var(--olive-dark);
   background: #f4f5ec;
   flex-shrink: 0;
@@ -181,8 +210,8 @@
   stroke-linejoin: round;
 }
 .dashboard .card-value {
-  margin-top: 18px;
-  font-size: 34px;
+  margin-top: var(--space-lg);
+  font-size: 32px;
   font-weight: 600;
   letter-spacing: -1px;
   font-variant-numeric: tabular-nums;
@@ -193,13 +222,10 @@
   font-size: 12px;
 }
 .dashboard .recent-section {
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
   overflow: hidden;
 }
 .dashboard .section-heading {
-  padding: 26px 28px;
+  padding: var(--space-xl);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -207,8 +233,9 @@
 }
 .dashboard .section-heading h2,
 .dashboard .dialog-heading h2 {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
+  line-height: 1.4;
 }
 .dashboard .section-heading p {
   color: var(--muted);
@@ -229,24 +256,25 @@
   white-space: nowrap;
 }
 .dashboard th {
-  background: #fafbf8;
+  background: var(--surface-muted);
   color: #62665a;
   font-size: 11px;
-  letter-spacing: 0.7px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   font-weight: 600;
   padding: 16px 24px;
   border-block: 1px solid var(--border);
 }
 .dashboard td {
-  padding: 24px;
+  padding: 22px 24px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
   color: #62665a;
+  vertical-align: middle;
 }
 .dashboard th:first-child,
 .dashboard td:first-child {
-  padding-left: 28px;
+  padding-left: 24px;
 }
 .dashboard .client-name,
 .dashboard .amount {
@@ -255,18 +283,29 @@
 }
 .dashboard .amount {
   font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.dashboard th:last-child,
+.dashboard td:last-child,
+.dashboard:not(.clientes-page) th:nth-child(3) {
+  text-align: right;
+}
+.dashboard tbody tr:last-child td {
+  border-bottom: 0;
 }
 .dashboard tbody tr:hover {
-  background: #f0f3e7;
+  background: #f7f9f1;
 }
 .dashboard .status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 9px;
-  border-radius: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 .dashboard .status::before {
   content: "";
@@ -288,25 +327,35 @@
   color: #626f32;
 }
 .dashboard .status-recusado {
-  background: #fbefed;
-  color: #a14f46;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.dashboard .status-inativo {
+  background: #f0f1ed;
+  color: #5c5f57;
 }
 .dashboard .details-button {
-  color: var(--olive-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 36px;
+  color: #555b4e;
   border: 1px solid var(--border);
-  border-radius: 5px;
-  background: #ffffff;
+  border-radius: var(--radius-control);
+  background: var(--surface);
   padding: 7px 12px;
   font-size: 12px;
   font-weight: 600;
 }
 .dashboard .details-button:hover {
-  background: var(--olive-dark);
-  border-color: var(--olive-dark);
-  color: #ffffff;
+  background: var(--olive-soft);
+  border-color: var(--border-hover);
+  color: var(--olive-dark);
 }
 .dashboard .table-note {
-  padding: 17px 28px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
   font-size: 12px;
   color: var(--muted);
 }
@@ -321,9 +370,13 @@
 }
 .dashboard dialog {
   width: min(440px, calc(100% - 32px));
-  padding: 24px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: var(--space-xl);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 20px 64px rgb(27 29 26 / 18%);
   color: var(--text);
 }
 .dashboard dialog::backdrop {
@@ -334,27 +387,129 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
 }
 .dashboard .close-button {
-  border: 0;
-  border-radius: 4px;
-  background: var(--background);
-  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  padding: 0;
   font-size: 24px;
-  color: var(--text);
+  line-height: 1;
+  color: #62665a;
 }
+.dashboard .danger-button:hover,
+.dashboard .cancel-button:hover,
+.dashboard #cancelar:hover,
 .dashboard .close-button:hover {
-  background: var(--olive-dark);
-  color: #ffffff;
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 .dashboard tbody tr,
+.dashboard .navigation a,
+.dashboard input,
+.dashboard select,
+.dashboard textarea,
 .dashboard .primary-button,
 .dashboard .details-button,
 .dashboard .close-button {
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
-    color 0.2s ease;
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+/* Campos e componentes de formulário compartilhados por todas as páginas. */
+.dashboard input,
+.dashboard select,
+.dashboard textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.5;
+}
+.dashboard select {
+  height: var(--control-height);
+}
+.dashboard textarea {
+  resize: vertical;
+}
+.dashboard input::placeholder,
+.dashboard textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.dashboard :is(input, select, textarea):where(:not(:disabled):not([readonly])):hover {
+  border-color: var(--border-hover);
+}
+.dashboard :is(input, select, textarea):focus {
+  border-color: var(--olive);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(140 150 74 / 12%);
+}
+.dashboard input[readonly],
+.dashboard :is(input, select, textarea):disabled {
+  background: #f3f5ef;
+  color: #62665a;
+}
+.dashboard .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.dashboard .form-field label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.dashboard .field-counter {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+.dashboard .dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+}
+.dashboard .dialog-actions .details-button {
+  min-height: var(--control-height);
+  padding-inline: 16px;
+  font-size: 13px;
+}
+.dashboard .error-message {
+  color: var(--danger);
+  font-size: 12px;
+}
+.dashboard [aria-invalid="true"],
+.dashboard :is(input, select, textarea)[aria-invalid="true"]:hover,
+.dashboard :is(input, select, textarea)[aria-invalid="true"]:focus {
+  border-color: var(--danger);
+}
+.dashboard :is(input, select, textarea)[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px rgb(161 79 70 / 10%);
+}
+.dashboard button:disabled {
+  opacity: 0.6;
 }
 .dashboard .dialog-note {
   color: var(--muted);
@@ -377,7 +532,7 @@
 @media (max-width: 1050px) {
   .dashboard .header-content {
     flex-wrap: wrap;
-    gap: 18px;
+    gap: 16px;
   }
   .dashboard .navigation {
     order: 3;
@@ -390,18 +545,18 @@
 
 @media (max-width: 700px) {
   .dashboard .header-content {
-    padding: 20px;
-    gap: 20px 12px;
+    padding: 16px 20px;
+    gap: 16px 12px;
   }
   .dashboard .brand-name {
-    font-size: 32px;
+    font-size: 30px;
   }
   .dashboard .brand-description {
     font-size: 10px;
   }
   .dashboard .primary-button {
     padding: 10px 12px;
-    font-size: 12px;
+    font-size: 13px;
   }
   .dashboard .navigation {
     overflow-x: auto;
@@ -416,7 +571,7 @@
     padding: 32px 20px 24px;
   }
   .dashboard h1 {
-    font-size: 27px;
+    font-size: 26px;
   }
   .dashboard .summary {
     grid-template-columns: 1fr;
@@ -430,7 +585,7 @@
     font-size: 30px;
   }
   .dashboard .section-heading {
-    padding: 22px 20px;
+    padding: 20px;
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
@@ -438,4 +593,19 @@
   .dashboard .table-note {
     padding: 16px 20px;
   }
+}
+
+@media (max-width: 480px) {
+  .dashboard .main-content { padding: 28px 16px 24px; }
+  .dashboard .header-content { padding-inline: 16px; }
+  .dashboard dialog { padding: 20px; }
+  .dashboard .dialog-actions > button { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard :is(button, a, input, select, textarea, tr) { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .dashboard :is(input, select, textarea):focus { outline: 2px solid Highlight; outline-offset: 2px; }
 }
