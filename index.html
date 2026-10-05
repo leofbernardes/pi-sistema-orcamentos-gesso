@@ -3,12 +3,187 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema de Orçamentos</title>
+    <meta name="theme-color" content="#F7F8F4" />
+    <title>Dashboard | Pizzol Decoração em Gesso</title>
+    <link rel="stylesheet" href="./css/style.css" />
   </head>
 
-  <body>
-    <h1>Sistema de Orçamentos - Drywall e Gesso</h1>
+  <body class="dashboard">
+    <header class="header">
+      <div class="header-content">
+        <a
+          class="brand"
+          href="./index.html"
+          aria-label="Pizzol Decoração em Gesso — início"
+        >
+          <span class="brand-name">Pizzol<span class="brand-dot"></span></span>
+          <span class="brand-description">Decoração em Gesso</span>
+        </a>
+        <nav class="navigation" aria-label="Menu principal">
+          <a href="./index.html" aria-current="page">Dashboard</a>
+          <a href="./pages/clientes.html">Clientes</a>
+          <a href="./pages/orcamentos.html">Orçamentos</a>
+          <a href="./pages/servicos.html">Serviços e Preços</a>
+        </nav>
+        <a class="primary-button" href="./pages/novo-orcamento.html"
+          ><span aria-hidden="true">+</span> Novo orçamento</a
+        >
+      </div>
+    </header>
 
-    <script type="module" src="./js/app.js"></script>
+    <main class="main-content" id="conteudo">
+      <div class="page-heading">
+        <p class="eyebrow">PAINEL DE ORÇAMENTOS</p>
+        <h1>Visão Geral</h1>
+        <p>Acompanhe os orçamentos e os clientes da Pizzol.</p>
+      </div>
+
+      <section class="summary" aria-label="Resumo do sistema">
+        <article class="summary-card">
+          <div class="card-heading">
+            <h2>Valor total orçado</h2>
+            <span class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 9h18M7 14h4" />
+              </svg>
+            </span>
+          </div>
+          <p class="card-value" id="valor-total">R$ 0,00</p>
+          <p class="card-description">Total em orçamentos</p>
+        </article>
+        <article class="summary-card">
+          <div class="card-heading">
+            <h2>Orçamentos pendentes</h2>
+            <span class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+            </span>
+          </div>
+          <p class="card-value" id="orcamentos-pendentes">0</p>
+          <p class="card-description">Aguardando aprovação</p>
+        </article>
+        <article class="summary-card">
+          <div class="card-heading">
+            <h2>Clientes cadastrados</h2>
+            <span class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <circle cx="9" cy="8" r="3" />
+                <path
+                  d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4v2"
+                />
+              </svg>
+            </span>
+          </div>
+          <p class="card-value" id="clientes-cadastrados">0</p>
+          <p class="card-description">Sua base de clientes</p>
+        </article>
+      </section>
+
+      <section class="recent-section" aria-labelledby="recent-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="recent-title">Orçamentos recentes</h2>
+            <p>Uma visão dos últimos orçamentos.</p>
+          </div>
+          <span class="demo-label">Dados demonstrativos</span>
+        </div>
+        <div
+          class="table-container"
+          tabindex="0"
+          role="region"
+          aria-label="Orçamentos recentes; role horizontalmente em telas pequenas"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Cliente</th>
+                <th scope="col">Serviço</th>
+                <th scope="col">Valor</th>
+                <th scope="col">Status</th>
+                <th scope="col">Data</th>
+                <th scope="col">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="client-name">Mariana Costa</td>
+                <td>Drywall</td>
+                <td class="amount">R$ 4.800,00</td>
+                <td><span class="status status-pendente">Pendente</span></td>
+                <td><time datetime="2026-09-28">28/09/2026</time></td>
+                <td>
+                  <button
+                    class="details-button"
+                    type="button"
+                    aria-label="Ver detalhes do orçamento de Mariana Costa"
+                  >
+                    Ver detalhes
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="client-name">Roberto Almeida</td>
+                <td>Gesso Liso</td>
+                <td class="amount">R$ 2.350,00</td>
+                <td>
+                  <span class="status status-em-andamento">Em andamento</span>
+                </td>
+                <td><time datetime="2026-09-25">25/09/2026</time></td>
+                <td>
+                  <button
+                    class="details-button"
+                    type="button"
+                    aria-label="Ver detalhes do orçamento de Roberto Almeida"
+                  >
+                    Ver detalhes
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="client-name">Fernanda Souza</td>
+                <td>Moldura de Gesso</td>
+                <td class="amount">R$ 980,00</td>
+                <td>
+                  <span class="status status-finalizado">Finalizado</span>
+                </td>
+                <td><time datetime="2026-09-22">22/09/2026</time></td>
+                <td>
+                  <button
+                    class="details-button"
+                    type="button"
+                    aria-label="Ver detalhes do orçamento de Fernanda Souza"
+                  >
+                    Ver detalhes
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">
+          Registros fictícios para visualização. Os indicadores acima permanecem
+          zerados.
+        </p>
+      </section>
+      <footer class="page-footer">
+        Pizzol Decoração em Gesso <span aria-hidden="true">·</span> Sistema de
+        Orçamentos
+      </footer>
+    </main>
+
+    <dialog id="details-dialog" aria-labelledby="details-title">
+      <div class="dialog-heading">
+        <h2 id="details-title">Detalhes do orçamento</h2>
+        <form method="dialog">
+          <button class="close-button" aria-label="Fechar detalhes">×</button>
+        </form>
+      </div>
+      <p class="dialog-note">Orçamento demonstrativo</p>
+      <dl id="details-content"></dl>
+    </dialog>
+    <script src="./js/app.js" defer></script>
   </body>
 </html>

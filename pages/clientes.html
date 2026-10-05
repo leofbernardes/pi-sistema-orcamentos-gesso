@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#F7F8F4" />
+    <title>Clientes | Pizzol Decoração em Gesso</title>
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/clientes.css" />
+    <script src="../js/models/Cliente.js" defer></script>
+    <script src="../js/clientes.js" defer></script>
+  </head>
+  <body class="dashboard clientes-page">
+    <header class="header">
+      <div class="header-content">
+        <a class="brand" href="../index.html" aria-label="Pizzol Decoração em Gesso — início">
+          <span class="brand-name">Pizzol<span class="brand-dot"></span></span>
+          <span class="brand-description">Decoração em Gesso</span>
+        </a>
+        <nav class="navigation" aria-label="Menu principal">
+          <a href="../index.html">Dashboard</a>
+          <a href="./clientes.html" aria-current="page">Clientes</a>
+          <a href="./orcamentos.html">Orçamentos</a>
+          <a href="./servicos.html">Serviços e Preços</a>
+        </nav>
+        <a class="primary-button" href="./novo-orcamento.html"><span aria-hidden="true">+</span> Novo orçamento</a>
+      </div>
+    </header>
+
+    <main class="main-content" id="conteudo">
+      <div class="page-heading">
+        <h1>Clientes</h1>
+        <p>Gerencie os clientes cadastrados no sistema.</p>
+      </div>
+      <p id="storage-error" class="error-message storage-error" role="alert" hidden></p>
+      <section class="recent-section clients-section" aria-label="Clientes cadastrados">
+        <div class="section-heading clients-controls">
+          <div class="search-control">
+            <label class="visually-hidden" for="busca">Buscar por nome ou telefone</label>
+            <input id="busca" type="search" placeholder="Buscar por nome ou telefone..." />
+          </div>
+          <div>
+            <label class="visually-hidden" for="filtro-status">Filtrar por status</label>
+            <select id="filtro-status">
+              <option value="todos">Todos</option>
+              <option value="Ativo">Ativos</option>
+              <option value="Inativo">Inativos</option>
+            </select>
+          </div>
+          <span id="contador" class="clients-count" aria-live="polite">0 clientes cadastrados</span>
+          <button id="novo-cliente" class="primary-button" type="button"><span aria-hidden="true">+</span> Novo cliente</button>
+        </div>
+        <div class="table-container" tabindex="0" role="region" aria-label="Lista de clientes; role horizontalmente em telas pequenas">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Código</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Telefone / WhatsApp</th>
+                <th scope="col">Cidade</th>
+                <th scope="col">Status</th>
+                <th scope="col">Último orçamento</th>
+                <th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="lista-clientes"></tbody>
+          </table>
+        </div>
+        <div id="estado-vazio" class="empty-state" role="status">
+          <p id="vazio-titulo">Nenhum cliente cadastrado.</p>
+          <p id="vazio-descricao">Cadastre seu primeiro cliente para começar.</p>
+        </div>
+      </section>
+      <footer class="page-footer">Pizzol Decoração em Gesso <span aria-hidden="true">·</span> Sistema de Orçamentos</footer>
+    </main>
+
+    <dialog id="cliente-modal" class="client-dialog" aria-labelledby="form-titulo">
+      <div class="dialog-heading">
+        <h2 id="form-titulo">Novo Cliente</h2>
+        <button class="close-button" type="button" data-close aria-label="Fechar cadastro">×</button>
+      </div>
+      <form id="cliente-form" novalidate>
+        <div class="client-form-grid">
+          <div class="form-field full-width">
+            <label for="nome">Nome *</label>
+            <input id="nome" name="nome" autocomplete="name" maxlength="80" required aria-describedby="erro-nome" />
+            <p id="erro-nome" class="error-message" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="telefone">Telefone / WhatsApp *</label>
+            <input id="telefone" name="telefone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="15" required aria-describedby="erro-telefone" />
+            <p id="erro-telefone" class="error-message" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="status">Status</label>
+            <select id="status" name="status" aria-describedby="erro-status"><option>Ativo</option><option>Inativo</option></select>
+            <p id="erro-status" class="error-message" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="rua">Rua *</label>
+            <input id="rua" name="rua" autocomplete="address-line1" maxlength="120" required aria-describedby="erro-rua" />
+            <p id="erro-rua" class="error-message" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="numero">Número</label>
+            <input id="numero" name="numero" inputmode="numeric" maxlength="8" aria-describedby="erro-numero" />
+            <p id="erro-numero" class="error-message" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="cidade">Cidade *</label>
+            <input id="cidade" name="cidade" autocomplete="address-level2" maxlength="60" required aria-describedby="erro-cidade" />
+            <p id="erro-cidade" class="error-message" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="cep">CEP</label>
+            <input id="cep" name="cep" autocomplete="postal-code" inputmode="numeric" maxlength="9" aria-describedby="erro-cep" />
+            <p id="erro-cep" class="error-message" hidden></p>
+          </div>
+          <div class="form-field full-width">
+            <label for="observacoes">Observações</label>
+            <textarea id="observacoes" name="observacoes" rows="3" maxlength="300" aria-describedby="contador-observacoes erro-observacoes"></textarea>
+            <p id="contador-observacoes" class="field-counter">0 / 300</p>
+            <p id="erro-observacoes" class="error-message" hidden></p>
+          </div>
+        </div>
+        <p id="salvar-erro" class="error-message" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button class="details-button cancel-button" type="button" data-close>Cancelar</button>
+          <button id="salvar-cliente" class="primary-button" type="submit">Salvar Cliente</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="ver-modal" class="client-dialog" aria-labelledby="ver-titulo">
+      <div class="dialog-heading">
+        <h2 id="ver-titulo">Detalhes do Cliente</h2>
+        <button class="close-button" type="button" data-close aria-label="Fechar detalhes">×</button>
+      </div>
+      <dl class="client-details">
+        <dt>Nome</dt><dd id="ver-nome"></dd>
+        <dt>Status</dt><dd><span id="ver-status" class="status"></span></dd>
+        <dt>Telefone / WhatsApp</dt><dd id="ver-telefone"></dd>
+      </dl>
+      <section class="detail-section" aria-labelledby="endereco-titulo">
+        <h3 id="endereco-titulo">Endereço</h3>
+        <p id="ver-endereco"></p>
+        <p id="ver-cidade"></p>
+        <p id="ver-cep" hidden></p>
+      </section>
+      <section id="observacoes-secao" class="detail-section" aria-labelledby="observacoes-titulo" hidden>
+        <h3 id="observacoes-titulo">Observações</h3>
+        <p id="ver-observacoes"></p>
+      </section>
+      <section class="detail-section" aria-labelledby="orcamentos-titulo">
+        <h3 id="orcamentos-titulo">Orçamentos do cliente</h3>
+        <p>Nenhum orçamento cadastrado para este cliente.</p>
+      </section>
+      <div class="dialog-actions"><button class="details-button" type="button" data-close>Fechar</button></div>
+    </dialog>
+    <dialog id="excluir-modal" class="client-dialog" aria-labelledby="excluir-titulo" aria-describedby="excluir-mensagem">
+      <div class="dialog-heading">
+        <h2 id="excluir-titulo">Excluir cliente?</h2>
+        <button class="close-button" type="button" data-close aria-label="Fechar confirmação">×</button>
+      </div>
+      <p id="excluir-mensagem" class="delete-message"></p>
+      <p id="excluir-erro" class="error-message" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button id="cancelar-exclusao" class="details-button cancel-button" type="button" data-close>Cancelar</button>
+        <button id="confirmar-exclusao" class="details-button danger-button" type="button">Excluir</button>
+      </div>
+    </dialog>
+  </body>
+</html>
