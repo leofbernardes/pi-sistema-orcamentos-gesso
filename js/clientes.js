@@ -112,7 +112,7 @@ function validarDados(dados) {
 }
 
 function normalizar(texto) {
-  return String(texto).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return String(texto).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
 function criarStatus(status) {
@@ -123,12 +123,10 @@ function criarStatus(status) {
 }
 
 function listarClientes() {
-  const termo = normalizar(busca.value.trim());
-  const digitos = termo.replace(/\D/g, "");
+  const termo = normalizar(busca.value);
   const filtrados = clientes.filter((cliente) => {
     const correspondeBusca = normalizar(cliente.nome).includes(termo)
-      || normalizar(cliente.telefone).includes(termo)
-      || (digitos && /^[\d\s()+.-]+$/.test(termo) && cliente.telefone.replace(/\D/g, "").includes(digitos));
+      || normalizar(cliente.codigo).includes(termo);
     return correspondeBusca && (filtro.value === "todos" || cliente.status === filtro.value);
   });
 
@@ -167,7 +165,7 @@ function listarClientes() {
   document.querySelector("#contador").textContent = total === 1 ? "1 cliente cadastrado" : `${total} clientes cadastrados`;
   document.querySelector("#estado-vazio").hidden = filtrados.length > 0 || leituraFalhou;
   document.querySelector("#vazio-titulo").textContent = total ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado.";
-  document.querySelector("#vazio-descricao").textContent = total ? "Tente outro nome, telefone ou status." : "Cadastre seu primeiro cliente para começar.";
+  document.querySelector("#vazio-descricao").textContent = total ? "Tente outro código, nome ou status." : "Cadastre seu primeiro cliente para começar.";
 }
 
 function limparErro(campo) {

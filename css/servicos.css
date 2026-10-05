@@ -1,0 +1,41 @@
+/* Apenas ajustes da nova página; os componentes vêm de style.css e clientes.css. */
+.servicos-page [hidden] {
+  display: none;
+}
+.servicos-page .empty-state .primary-button {
+  margin-top: 24px;
+}
+.servicos-page .clients-count {
+  white-space: nowrap;
+}
+.servicos-page .service-name {
+  max-width: 320px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.servicos-page #confirmar-exclusao {
+  background: #a14f46;
+  border-color: #a14f46;
+  color: #fff;
+}
+.servicos-page #confirmar-exclusao:hover {
+  background: #863e36;
+  border-color: #863e36;
+}
+.servicos-page button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@media (max-width: 700px) {
+  .servicos-page .service-filter {
+    flex: 1;
+    min-width: 0;
+  }
+  .servicos-page .clients-count {
+    flex-basis: 100%;
+    text-align: left;
+  }
+  .servicos-page #novo-servico {
+    width: 100%;
+  }
+}

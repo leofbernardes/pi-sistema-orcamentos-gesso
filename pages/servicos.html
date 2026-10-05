@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#F7F8F4" />
+    <title>Serviços e Preços | Pizzol Decoração em Gesso</title>
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/clientes.css" />
+    <link rel="stylesheet" href="../css/servicos.css" />
+    <script src="../js/models/servico.js" defer></script>
+    <script src="../js/servicos.js" defer></script>
+  </head>
+  <!-- Reutiliza os componentes visuais de Clientes sem alterar seus estilos. -->
+  <body class="dashboard clientes-page servicos-page">
+    <header class="header">
+      <div class="header-content">
+        <a class="brand" href="../index.html" aria-label="Pizzol Decoração em Gesso — início">
+          <span class="brand-name">Pizzol<span class="brand-dot">.</span></span>
+          <span class="brand-description">Decoração em Gesso</span>
+        </a>
+        <nav class="navigation" aria-label="Menu principal">
+          <a href="../index.html">Dashboard</a>
+          <a href="./clientes.html">Clientes</a>
+          <a href="./orcamentos.html">Orçamentos</a>
+          <a href="./servicos.html" aria-current="page">Serviços e Preços</a>
+        </nav>
+        <a class="primary-button" href="./novo-orcamento.html"><span aria-hidden="true">+</span> Novo orçamento</a>
+      </div>
+    </header>
+
+    <main class="main-content" id="conteudo">
+      <div class="page-heading">
+        <h1>Serviços e Preços</h1>
+        <p>Gerencie os serviços e valores utilizados nos orçamentos.</p>
+      </div>
+      <p id="storage-error" class="error-message storage-error" role="alert" hidden></p>
+      <section class="recent-section clients-section" aria-label="Serviços cadastrados">
+        <div class="section-heading clients-controls">
+          <div class="search-control">
+            <label class="visually-hidden" for="busca">Buscar por código ou serviço</label>
+            <input id="busca" type="search" placeholder="Buscar por código ou serviço..." />
+          </div>
+          <div class="service-filter">
+            <label class="visually-hidden" for="filtro-tipo">Filtrar por tipo</label>
+            <select id="filtro-tipo">
+              <option value="todos">Todos</option>
+              <option>Forro</option><option>Parede</option><option>Sanca / Cortineiro</option>
+              <option>Moldura</option><option>Gesso Liso</option><option>Outro</option>
+            </select>
+          </div>
+          <div class="service-filter">
+            <label class="visually-hidden" for="filtro-status">Filtrar por status</label>
+            <select id="filtro-status">
+              <option value="todos">Todos</option><option value="Ativo">Ativos</option><option value="Inativo">Inativos</option>
+            </select>
+          </div>
+          <span id="contador" class="clients-count" aria-live="polite">0 serviços cadastrados</span>
+          <button id="novo-servico" class="primary-button" type="button"><span aria-hidden="true">+</span> Novo serviço</button>
+        </div>
+        <div class="table-container" tabindex="0" role="region" aria-label="Lista de serviços; role horizontalmente em telas pequenas">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Código</th><th scope="col">Serviço</th><th scope="col">Tipo</th>
+                <th scope="col">Unidade</th><th scope="col">Preço</th><th scope="col">Status</th><th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="lista-servicos"></tbody>
+          </table>
+        </div>
+        <div id="estado-vazio" class="empty-state" role="status">
+          <p id="vazio-titulo">Nenhum serviço cadastrado.</p>
+          <p id="vazio-descricao">Cadastre os serviços utilizados pela Pizzol para começar a criar orçamentos.</p>
+          <button id="novo-servico-vazio" class="primary-button" type="button"><span aria-hidden="true">+</span> Novo serviço</button>
+        </div>
+      </section>
+      <footer class="page-footer">Pizzol Decoração em Gesso <span aria-hidden="true">·</span> Sistema de Orçamentos</footer>
+    </main>
+
+    <dialog id="servico-modal" class="client-dialog" aria-labelledby="form-titulo">
+      <div class="dialog-heading">
+        <h2 id="form-titulo">Novo Serviço</h2>
+        <button class="close-button" type="button" data-close aria-label="Fechar cadastro">×</button>
+      </div>
+      <form id="servico-form" novalidate>
+        <div class="client-form-grid">
+          <div class="form-field full-width">
+            <label for="tipo">Tipo de serviço *</label>
+            <select id="tipo" name="tipo" required aria-describedby="erro-tipo">
+              <option value="">Selecione o tipo</option>
+              <option>Forro</option><option>Parede</option><option>Sanca / Cortineiro</option>
+              <option>Moldura</option><option>Gesso Liso</option><option>Outro</option>
+            </select>
+            <p id="erro-tipo" class="error-message" hidden></p>
+          </div>
+          <div class="form-field full-width">
+            <label for="nome">Nome do serviço *</label>
+            <input id="nome" name="nome" maxlength="80" required aria-describedby="erro-nome" />
+            <p id="erro-nome" class="error-message" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="unidade">Unidade de medida *</label>
+            <select id="unidade" name="unidade" required aria-describedby="erro-unidade">
+              <option value="">Selecione a unidade</option>
+              <option>m²</option><option>metro linear</option><option>unidade</option>
+            </select>
+            <p id="erro-unidade" class="error-message" hidden></p>
+          </div>
+          <div class="form-field">
+            <label for="preco">Preço de venda *</label>
+            <input id="preco" name="preco" inputmode="decimal" placeholder="R$ 0,00" required aria-describedby="erro-preco" />
+            <p id="erro-preco" class="error-message" hidden></p>
+          </div>
+          <div class="form-field full-width">
+            <label for="status">Status</label>
+            <select id="status" name="status" aria-describedby="erro-status"><option>Ativo</option><option>Inativo</option></select>
+            <p id="erro-status" class="error-message" hidden></p>
+          </div>
+          <div class="form-field full-width">
+            <label for="descricao">Descrição</label>
+            <textarea id="descricao" name="descricao" rows="3" maxlength="300" aria-describedby="contador-descricao erro-descricao"></textarea>
+            <p id="contador-descricao" class="field-counter">0 / 300</p>
+            <p id="erro-descricao" class="error-message" hidden></p>
+          </div>
+        </div>
+        <p id="salvar-erro" class="error-message" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button class="details-button cancel-button" type="button" data-close>Cancelar</button>
+          <button id="salvar-servico" class="primary-button" type="submit">Salvar Serviço</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="ver-modal" class="client-dialog" aria-labelledby="ver-titulo">
+      <div class="dialog-heading">
+        <h2 id="ver-titulo">Detalhes do Serviço</h2>
+        <button class="close-button" type="button" data-close aria-label="Fechar detalhes">×</button>
+      </div>
+      <dl class="client-details">
+        <dt>Código</dt><dd id="ver-codigo"></dd>
+        <dt>Nome</dt><dd id="ver-nome"></dd>
+        <dt>Tipo</dt><dd id="ver-tipo"></dd>
+        <dt>Unidade</dt><dd id="ver-unidade"></dd>
+        <dt>Preço atual</dt><dd id="ver-preco" class="amount"></dd>
+        <dt>Status</dt><dd><span id="ver-status" class="status"></span></dd>
+      </dl>
+      <section id="descricao-secao" class="detail-section" aria-labelledby="descricao-titulo" hidden>
+        <h3 id="descricao-titulo">Descrição</h3>
+        <p id="ver-descricao"></p>
+      </section>
+    </dialog>
+
+    <dialog id="excluir-modal" class="client-dialog" aria-labelledby="excluir-titulo" aria-describedby="excluir-mensagem">
+      <div class="dialog-heading">
+        <h2 id="excluir-titulo">Excluir serviço?</h2>
+        <button class="close-button" type="button" data-close aria-label="Fechar confirmação">×</button>
+      </div>
+      <p id="excluir-mensagem" class="delete-message"></p>
+      <p id="excluir-erro" class="error-message" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button id="cancelar-exclusao" class="details-button cancel-button" type="button" data-close>Cancelar</button>
+        <button id="confirmar-exclusao" class="details-button danger-button" type="button">Excluir</button>
+      </div>
+    </dialog>
+  </body>
+</html>
